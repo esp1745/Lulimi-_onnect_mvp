@@ -5,6 +5,17 @@ from django.shortcuts import get_object_or_404
 from .models import Booking
 from .serializers import BookingSerializer, BookingStatusSerializer
 from apps.teachers.models import Teacher
+from apps.notifications.models import Notification
+from apps.notifications import email as notify_email
+
+
+def _create_notification(user, notification_type, title, body):
+    Notification.objects.create(
+        user=user,
+        notification_type=notification_type,
+        title=title,
+        body=body,
+    )
 
 
 class BookingCreateView(generics.CreateAPIView):
@@ -13,7 +24,14 @@ class BookingCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(learner=self.request.user)
+        booking = serializer.save(learner=self.request.user)
+        teacher_user = booking.teacher.user
+        _create_notification(
+            teacher_user, 'booking_request',
+            'New Booking Request',
+            f'{booking.learner.full_name} has requested a lesson on {booking.start_at.strftime("%d %b %Y at %H:%M UTC")}.',
+        )
+        notify_email.send_booking_request_email(booking)
 
 
 class LearnerBookingListView(generics.ListAPIView):
@@ -66,6 +84,14 @@ class BookingConfirmView(APIView):
         if meeting_link:
             booking.external_meeting_link = meeting_link
         booking.save()
+
+        _create_notification(
+            booking.learner, 'booking_confirmed',
+            'Booking Confirmed',
+            f'Your lesson with {booking.teacher.user.full_name} on {booking.start_at.strftime("%d %b %Y at %H:%M UTC")} has been confirmed.',
+        )
+        notify_email.send_booking_confirmed_email(booking)
+
         return Response(BookingSerializer(booking).data)
 
 
@@ -77,6 +103,14 @@ class BookingDeclineView(APIView):
         booking = get_object_or_404(Booking, pk=pk, teacher__user=request.user, status='pending')
         booking.status = 'declined'
         booking.save()
+
+        _create_notification(
+            booking.learner, 'booking_declined',
+            'Booking Declined',
+            f'Your booking request with {booking.teacher.user.full_name} has been declined.',
+        )
+        notify_email.send_booking_declined_email(booking)
+
         return Response(BookingSerializer(booking).data)
 
 
@@ -88,14 +122,31 @@ class BookingCancelView(APIView):
         user = request.user
         if user.role == 'teacher':
             booking = get_object_or_404(Booking, pk=pk, teacher__user=user)
+            cancelled_by = 'teacher'
         else:
             booking = get_object_or_404(Booking, pk=pk, learner=user)
+            cancelled_by = 'learner'
 
         if booking.status not in ['pending', 'confirmed']:
             return Response({'detail': 'Cannot cancel this booking.'}, status=status.HTTP_400_BAD_REQUEST)
 
         booking.status = 'cancelled'
         booking.save()
+
+        if cancelled_by == 'teacher':
+            _create_notification(
+                booking.learner, 'booking_cancelled',
+                'Booking Cancelled',
+                f'Your lesson with {booking.teacher.user.full_name} on {booking.start_at.strftime("%d %b %Y at %H:%M UTC")} has been cancelled.',
+            )
+        else:
+            _create_notification(
+                booking.teacher.user, 'booking_cancelled',
+                'Booking Cancelled',
+                f'{booking.learner.full_name} cancelled their lesson on {booking.start_at.strftime("%d %b %Y at %H:%M UTC")}.',
+            )
+        notify_email.send_booking_cancelled_email(booking, cancelled_by)
+
         return Response(BookingSerializer(booking).data)
 
 

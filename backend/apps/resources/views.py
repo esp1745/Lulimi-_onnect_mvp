@@ -1,10 +1,21 @@
+import os
+import uuid
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from .models import Resource, LessonResource
 from .serializers import ResourceSerializer, LessonResourceSerializer
 from apps.teachers.models import Teacher
 from apps.bookings.models import Booking
+
+ALLOWED_TYPES = {
+    'audio': ['.mp3', '.wav', '.m4a', '.ogg'],
+    'pdf': ['.pdf'],
+    'image': ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+}
 
 
 class IsTeacher(permissions.BasePermission):
@@ -83,3 +94,42 @@ class LessonResourceDeleteView(generics.DestroyAPIView):
 
     def get_queryset(self):
         return LessonResource.objects.filter(booking__teacher__user=self.request.user)
+
+
+class FileUploadView(APIView):
+    """Upload a file (audio, PDF, or image) and receive a URL for use in a resource."""
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'detail': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ext = os.path.splitext(file.name)[1].lower()
+        resource_type = None
+        for rtype, exts in ALLOWED_TYPES.items():
+            if ext in exts:
+                resource_type = rtype
+                break
+
+        if not resource_type:
+            allowed = ', '.join(e for exts in ALLOWED_TYPES.values() for e in exts)
+            return Response(
+                {'detail': f'Unsupported file type. Allowed: {allowed}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        filename = f'{uuid.uuid4().hex}{ext}'
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', resource_type)
+        os.makedirs(upload_dir, exist_ok=True)
+        filepath = os.path.join(upload_dir, filename)
+
+        with open(filepath, 'wb') as f:
+            for chunk in file.chunks():
+                f.write(chunk)
+
+        file_url = request.build_absolute_uri(
+            f'{settings.MEDIA_URL}uploads/{resource_type}/{filename}'
+        )
+        return Response({'url': file_url, 'resource_type': resource_type}, status=status.HTTP_201_CREATED)

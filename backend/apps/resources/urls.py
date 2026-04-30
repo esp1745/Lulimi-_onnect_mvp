@@ -3,6 +3,7 @@ from .views import (
     ResourceListCreateView, ResourceDetailView,
     LearnerResourceListView, PublicResourceListView,
     LessonResourceListCreateView, LessonResourceDeleteView,
+    FileUploadView,
 )
 
 urlpatterns = [
@@ -17,4 +18,7 @@ urlpatterns = [
     # Lesson attachments
     path('lessons/<int:booking_id>/', LessonResourceListCreateView.as_view(), name='lesson-resources'),
     path('lessons/items/<int:pk>/', LessonResourceDeleteView.as_view(), name='lesson-resource-delete'),
+
+    # File upload
+    path('upload/', FileUploadView.as_view(), name='file-upload'),
 ]

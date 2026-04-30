@@ -1,9 +1,14 @@
+from datetime import datetime, date, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from .models import Teacher, TeacherLanguage, Availability
 from .serializers import TeacherSerializer, TeacherPublicSerializer, TeacherLanguageSerializer, AvailabilitySerializer
+from apps.bookings.models import Booking
+from apps.bookings.serializers import BookingSerializer
 
 
 class IsTeacher(permissions.BasePermission):
@@ -113,3 +118,83 @@ class AvailabilityDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Availability.objects.filter(teacher__user=self.request.user)
+
+
+class TeacherAvailabilityPublicView(APIView):
+    """Public endpoint returning a teacher's availability, optionally converted to a requested timezone."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        teacher = get_object_or_404(Teacher, pk=pk, is_published=True, approval_status='approved')
+        slots = Availability.objects.filter(teacher=teacher, is_active=True)
+
+        viewer_tz_str = request.query_params.get('timezone', '').strip()
+        try:
+            viewer_tz = ZoneInfo(viewer_tz_str) if viewer_tz_str else None
+        except ZoneInfoNotFoundError:
+            return Response({'detail': f'Unknown timezone: {viewer_tz_str}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Monday = 0 in isoweekday; day_of_week field stores 0=Monday..6=Sunday
+        # Use a fixed Monday as anchor date for conversion
+        anchor = date(2024, 1, 1)  # known Monday
+
+        result = []
+        for slot in slots:
+            entry = AvailabilitySerializer(slot).data
+            if viewer_tz:
+                try:
+                    teacher_tz = ZoneInfo(slot.timezone or 'UTC')
+                    slot_date = anchor + timedelta(days=slot.day_of_week)
+
+                    start_dt = datetime(slot_date.year, slot_date.month, slot_date.day,
+                                        slot.start_time.hour, slot.start_time.minute,
+                                        tzinfo=teacher_tz)
+                    end_dt = datetime(slot_date.year, slot_date.month, slot_date.day,
+                                      slot.end_time.hour, slot.end_time.minute,
+                                      tzinfo=teacher_tz)
+
+                    converted_start = start_dt.astimezone(viewer_tz)
+                    converted_end = end_dt.astimezone(viewer_tz)
+
+                    entry['converted_timezone'] = viewer_tz_str
+                    entry['converted_start_time'] = converted_start.strftime('%H:%M')
+                    entry['converted_end_time'] = converted_end.strftime('%H:%M')
+                    entry['converted_day_of_week'] = converted_start.weekday()
+                except Exception:
+                    pass
+            result.append(entry)
+
+        return Response(result)
+
+
+class TeacherDashboardView(APIView):
+    """Aggregated dashboard summary for the logged-in teacher."""
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+    def get(self, request):
+        teacher = get_object_or_404(Teacher, user=request.user)
+        now = timezone.now()
+
+        upcoming = Booking.objects.filter(
+            teacher=teacher, status='confirmed', start_at__gte=now,
+        ).order_by('start_at')[:10]
+
+        pending = Booking.objects.filter(
+            teacher=teacher, status='pending',
+        ).order_by('created_at')
+
+        recent_completions = Booking.objects.filter(
+            teacher=teacher, status__in=['completed', 'confirmed'], start_at__lt=now,
+        ).order_by('-start_at')[:5]
+
+        student_ids = Booking.objects.filter(
+            teacher=teacher, status__in=['confirmed', 'completed'],
+        ).values_list('learner_id', flat=True).distinct()
+
+        return Response({
+            'upcoming_lessons': BookingSerializer(upcoming, many=True).data,
+            'pending_requests': BookingSerializer(pending, many=True).data,
+            'pending_requests_count': pending.count(),
+            'total_students': len(student_ids),
+            'recent_completions': BookingSerializer(recent_completions, many=True).data,
+        })

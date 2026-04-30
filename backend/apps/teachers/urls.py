@@ -4,6 +4,8 @@ from .views import (
     MarketplaceView,
     TeacherLanguageListCreateView, TeacherLanguageDeleteView,
     AvailabilityListCreateView, AvailabilityDetailView,
+    TeacherAvailabilityPublicView,
+    TeacherDashboardView,
 )
 
 urlpatterns = [
@@ -22,4 +24,10 @@ urlpatterns = [
     # Availability
     path('availability/', AvailabilityListCreateView.as_view(), name='availability-list'),
     path('availability/<int:pk>/', AvailabilityDetailView.as_view(), name='availability-detail'),
+
+    # Public availability with optional timezone conversion
+    path('<int:pk>/availability/', TeacherAvailabilityPublicView.as_view(), name='teacher-availability-public'),
+
+    # Dashboard
+    path('dashboard/', TeacherDashboardView.as_view(), name='teacher-dashboard'),
 ]
