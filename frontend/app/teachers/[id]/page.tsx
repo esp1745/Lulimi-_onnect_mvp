@@ -22,6 +22,9 @@ export default function TeacherProfilePage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [availability, setAvailability] = useState<Availability[]>([])
   const [booking, setBooking] = useState({ start_at: '', end_at: '', language_name: '', timezone_snapshot: Intl.DateTimeFormat().resolvedOptions().timeZone })
+  // raw datetime-local string values (YYYY-MM-DDTHH:MM)
+  const [startRaw, setStartRaw] = useState('')
+  const [endRaw, setEndRaw] = useState('')
   const [loading, setLoading] = useState(true)
   const [booking_loading, setBookingLoading] = useState(false)
 
@@ -135,8 +138,11 @@ export default function TeacherProfilePage() {
                     <Label>Start time</Label>
                     <Input
                       type="datetime-local"
-                      value={booking.start_at}
-                      onChange={(e) => setBooking((b) => ({ ...b, start_at: new Date(e.target.value).toISOString() }))}
+                      value={startRaw}
+                      onChange={(e) => {
+                        setStartRaw(e.target.value)
+                        setBooking((b) => ({ ...b, start_at: e.target.value ? new Date(e.target.value).toISOString() : '' }))
+                      }}
                       required
                     />
                   </div>
@@ -144,8 +150,11 @@ export default function TeacherProfilePage() {
                     <Label>End time</Label>
                     <Input
                       type="datetime-local"
-                      value={booking.end_at}
-                      onChange={(e) => setBooking((b) => ({ ...b, end_at: new Date(e.target.value).toISOString() }))}
+                      value={endRaw}
+                      onChange={(e) => {
+                        setEndRaw(e.target.value)
+                        setBooking((b) => ({ ...b, end_at: e.target.value ? new Date(e.target.value).toISOString() : '' }))
+                      }}
                       required
                     />
                   </div>

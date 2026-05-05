@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
@@ -19,21 +20,47 @@ const STATUS_COLORS: Record<string, string> = {
   completed: 'bg-blue-100 text-blue-700',
 }
 
-function BookingCard({ booking, onConfirm, onDecline }: { booking: Booking; onConfirm?: () => void; onDecline?: () => void }) {
+function BookingCard({ booking, onConfirm, onDecline }: { booking: Booking; onConfirm?: (link: string) => void; onDecline?: () => void }) {
+  const [meetingLink, setMeetingLink] = useState('')
+  const [confirming, setConfirming] = useState(false)
+
   return (
-    <div className="flex items-start justify-between py-3 border-b last:border-0 gap-3">
-      <div className="min-w-0">
-        <p className="font-medium text-sm">{booking.learner_name}</p>
-        <p className="text-xs text-gray-500">{booking.language_name} · {new Date(booking.start_at).toLocaleString()}</p>
-        {booking.external_meeting_link && (
-          <a href={booking.external_meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">Join lesson →</a>
-        )}
+    <div className="py-3 border-b last:border-0 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium text-sm">{booking.learner_name}</p>
+          <p className="text-xs text-gray-500">{booking.language_name} · {new Date(booking.start_at).toLocaleString()}</p>
+          {booking.external_meeting_link && (
+            <a href={booking.external_meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">Join lesson →</a>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge className={`text-xs border-0 ${STATUS_COLORS[booking.status]}`}>{booking.status}</Badge>
+          {onDecline && <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-200 hover:bg-red-50" onClick={onDecline}>Decline</Button>}
+        </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <Badge className={`text-xs border-0 ${STATUS_COLORS[booking.status]}`}>{booking.status}</Badge>
-        {onConfirm && <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs" onClick={onConfirm}>Confirm</Button>}
-        {onDecline && <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-200 hover:bg-red-50" onClick={onDecline}>Decline</Button>}
-      </div>
+      {onConfirm && (
+        confirming ? (
+          <div className="flex gap-2 items-center">
+            <Input
+              value={meetingLink}
+              onChange={(e) => setMeetingLink(e.target.value)}
+              placeholder="Zoom / Google Meet / WhatsApp link (optional)"
+              className="text-xs h-8"
+            />
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs shrink-0" onClick={() => onConfirm(meetingLink)}>
+              Confirm
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 text-xs shrink-0" onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs" onClick={() => setConfirming(true)}>
+            Confirm booking
+          </Button>
+        )
+      )}
     </div>
   )
 }
@@ -61,9 +88,9 @@ export default function TeacherDashboardPage() {
     if (!authLoading) fetchDashboard()
   }, [authLoading, user])
 
-  const handleConfirm = async (id: number) => {
+  const handleConfirm = async (id: number, meetingLink: string) => {
     try {
-      await api.post(`/api/bookings/${id}/confirm/`, {})
+      await api.post(`/api/bookings/${id}/confirm/`, { external_meeting_link: meetingLink })
       toast.success('Booking confirmed.')
       fetchDashboard()
     } catch { toast.error('Failed to confirm.') }
@@ -88,8 +115,10 @@ export default function TeacherDashboardPage() {
             <h1 className="text-2xl font-bold">Welcome, {user?.full_name?.split(' ')[0]}</h1>
             <p className="text-gray-500 text-sm">Your teaching dashboard</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <Link href="/teacher/profile"><Button variant="outline" size="sm">Edit profile</Button></Link>
+            <Link href="/teacher/availability"><Button variant="outline" size="sm">Availability</Button></Link>
+            <Link href="/teacher/resources"><Button variant="outline" size="sm">Resources</Button></Link>
           </div>
         </div>
 
@@ -120,7 +149,7 @@ export default function TeacherDashboardPage() {
                 <p className="text-sm text-gray-400">No pending requests.</p>
               ) : (
                 dashboard?.pending_requests.map((b) => (
-                  <BookingCard key={b.id} booking={b} onConfirm={() => handleConfirm(b.id)} onDecline={() => handleDecline(b.id)} />
+                  <BookingCard key={b.id} booking={b} onConfirm={(link) => handleConfirm(b.id, link)} onDecline={() => handleDecline(b.id)} />
                 ))
               )}
             </CardContent>

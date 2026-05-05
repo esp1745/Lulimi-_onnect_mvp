@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
-const LANGUAGES = ['Yoruba', 'Swahili', 'Akan', 'Kinyarwanda', 'Amharic', 'Zulu', 'Igbo', 'Twi']
+const LANGUAGES = ['Bemba', 'Nyanja', 'Tonga', 'Lozi', 'Kaonde', 'Luvale', 'Lunda', 'Tumbuka']
 
 export default function LandingPage() {
   return (
@@ -28,7 +28,7 @@ export default function LandingPage() {
           <span className="text-emerald-600">real teacher</span>
         </h1>
         <p className="text-lg text-gray-500 max-w-xl mb-10">
-          Find expert teachers for Yoruba, Swahili, Akan, Kinyarwanda and more. Book lessons, access resources, and connect with your roots.
+          Find expert teachers for Bemba, Nyanja, Tonga, Lozi and more. Book lessons, access resources, and connect with Zambia's languages and culture.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
           <Link href="/marketplace">
@@ -93,7 +93,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t px-6 py-6 text-center text-sm text-gray-400">
-        © {new Date().getFullYear()} Lulimi Connect. African language teachers and learners.
+        © {new Date().getFullYear()} Lulimi Connect. Zambian language teachers and learners.
       </footer>
     </div>
   )

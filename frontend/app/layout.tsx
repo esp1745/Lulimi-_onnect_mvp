@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/sonner'
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 
 export const metadata: Metadata = {
-  title: 'Lulimi Connect — African Language Teachers',
-  description: 'Find and book African language teachers. Learn Yoruba, Swahili, Akan, Kinyarwanda and more.',
+  title: 'Lulimi Connect — Zambian Language Teachers',
+  description: 'Find and book Zambian language teachers. Learn Bemba, Nyanja, Tonga, Lozi and more.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

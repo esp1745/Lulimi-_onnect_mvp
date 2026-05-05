@@ -48,7 +48,7 @@ function MarketplaceContent() {
         {/* Search bar */}
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 mb-8">
           <Input
-            placeholder="Search language (e.g. Yoruba, Swahili…)"
+            placeholder="Search language (e.g. Bemba, Nyanja, Tonga…)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1"

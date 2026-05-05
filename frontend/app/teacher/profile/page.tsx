@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
-import { Teacher, TeacherLanguage } from '@/types'
+import { Teacher } from '@/types'
 
 export default function TeacherProfilePage() {
   const { user, loading: authLoading } = useAuth()
@@ -19,7 +20,9 @@ export default function TeacherProfilePage() {
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [newLang, setNewLang] = useState({ language_name: '', proficiency_type: 'fluent' })
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({ headline: '', bio: '', lesson_format: 'online', years_experience: '', pricing_info: '', profile_photo_url: '', intro_audio_url: '' })
 
   useEffect(() => {
@@ -71,6 +74,25 @@ export default function TeacherProfilePage() {
       const { data } = await api.get('/api/teachers/profile/')
       setTeacher(data)
     } catch { toast.error('Could not remove language.') }
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPhoto(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const { data } = await api.post('/api/resources/upload/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setForm((f) => ({ ...f, profile_photo_url: data.url }))
+      toast.success('Photo uploaded.')
+    } catch {
+      toast.error('Could not upload photo. Make sure it is a JPG, PNG, or WebP.')
+    } finally {
+      setUploadingPhoto(false)
+    }
   }
 
   const handlePublish = async () => {
@@ -138,8 +160,34 @@ export default function TeacherProfilePage() {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label>Profile photo URL</Label>
-                <Input value={form.profile_photo_url} onChange={set('profile_photo_url')} placeholder="https://…" />
+                <Label>Profile photo</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16 cursor-pointer" onClick={() => photoInputRef.current?.click()}>
+                    <AvatarImage src={form.profile_photo_url} />
+                    <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xl font-bold">
+                      {user?.full_name?.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingPhoto}
+                      onClick={() => photoInputRef.current?.click()}
+                    >
+                      {uploadingPhoto ? 'Uploading…' : 'Upload photo'}
+                    </Button>
+                    <p className="text-xs text-gray-400 mt-1">JPG, PNG or WebP. Max 5MB.</p>
+                  </div>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label>Intro audio URL</Label>
