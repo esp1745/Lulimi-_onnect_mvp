@@ -9,6 +9,7 @@ from .models import Teacher, TeacherLanguage, Availability
 from .serializers import TeacherSerializer, TeacherPublicSerializer, TeacherLanguageSerializer, AvailabilitySerializer
 from apps.bookings.models import Booking
 from apps.bookings.serializers import BookingSerializer
+from apps.accounts.models import User
 
 
 class IsTeacher(permissions.BasePermission):
@@ -198,3 +199,32 @@ class TeacherDashboardView(APIView):
             'total_students': len(student_ids),
             'recent_completions': BookingSerializer(recent_completions, many=True).data,
         })
+
+
+class TeacherStudentListView(APIView):
+    """List all students who have booked with this teacher."""
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+    def get(self, request):
+        teacher = get_object_or_404(Teacher, user=request.user)
+        bookings = Booking.objects.filter(
+            teacher=teacher, status__in=['confirmed', 'completed'],
+        ).select_related('learner').order_by('-created_at')
+
+        seen = set()
+        students = []
+        for b in bookings:
+            if b.learner_id not in seen:
+                seen.add(b.learner_id)
+                lesson_count = bookings.filter(learner=b.learner).count()
+                students.append({
+                    'id': b.learner_id,
+                    'full_name': b.learner.full_name,
+                    'email': b.learner.email,
+                    'country': b.learner.country,
+                    'lesson_count': lesson_count,
+                    'last_lesson': b.start_at,
+                    'language_name': b.language_name,
+                })
+
+        return Response(students)

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Navbar from '@/components/Navbar'
+import AIAssistant from '@/components/AIAssistant'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { LearnerDashboard, Resource } from '@/types'
@@ -154,8 +155,11 @@ export default function LearnerDashboardPage() {
               )}
             </CardContent>
           </Card>
+
         </div>
       </div>
+
+      <AIAssistant role="learner" />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/hooks/useAuth'
+import NotificationsDropdown from '@/components/NotificationsDropdown'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -25,6 +26,7 @@ export default function Navbar() {
               <Button variant="ghost" size="sm">Dashboard</Button>
             </Link>
             <Badge variant="outline" className="text-xs capitalize">{user.role}</Badge>
+            <NotificationsDropdown />
             <Button variant="ghost" size="sm" onClick={handleLogout}>Log out</Button>
           </>
         ) : (

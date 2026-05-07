@@ -1,10 +1,21 @@
+'use client'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import api from '@/lib/api'
+import { Teacher } from '@/types'
 
 const LANGUAGES = ['Bemba', 'Nyanja', 'Tonga', 'Lozi', 'Kaonde', 'Luvale', 'Lunda', 'Tumbuka']
 
 export default function LandingPage() {
+  const [featured, setFeatured] = useState<Teacher[]>([])
+
+  useEffect(() => {
+    api.get('/api/teachers/?featured=true').then((r) => setFeatured(r.data.slice(0, 6))).catch(() => {})
+  }, [])
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Nav */}
@@ -60,6 +71,49 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* Featured teachers */}
+      {featured.length > 0 && (
+        <section className="px-6 py-16">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold">Featured teachers</h2>
+              <Link href="/marketplace" className="text-sm text-emerald-600 hover:underline">View all →</Link>
+            </div>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+              {featured.map((t) => (
+                <Link key={t.id} href={`/teachers/${t.id}`}>
+                  <div className="border rounded-xl p-5 bg-white hover:shadow-md transition-shadow cursor-pointer h-full flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 shrink-0">
+                        <AvatarImage src={t.profile_photo_url} />
+                        <AvatarFallback className="bg-emerald-100 text-emerald-700 font-bold">
+                          {t.full_name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">{t.full_name}</p>
+                        <p className="text-xs text-gray-500 truncate">{t.country}</p>
+                      </div>
+                    </div>
+                    {t.headline && <p className="text-xs text-gray-600 line-clamp-2">{t.headline}</p>}
+                    <div className="flex flex-wrap gap-1 mt-auto">
+                      {t.languages.slice(0, 3).map((l) => (
+                        <Badge key={l.id} variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                          {l.language_name}
+                        </Badge>
+                      ))}
+                      {t.pricing_info && (
+                        <Badge variant="outline" className="text-xs ml-auto">{t.pricing_info}</Badge>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* How it works */}
       <section className="px-6 py-16 bg-gray-50">

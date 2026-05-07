@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +42,7 @@ const EMPTY_FORM = {
 export default function ResourcesPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -62,7 +63,14 @@ export default function ResourcesPage() {
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return }
     if (!authLoading && user?.role !== 'teacher') { router.push('/learner/dashboard'); return }
-    if (!authLoading) fetchResources()
+    if (!authLoading) {
+      fetchResources()
+      const draft = searchParams.get('draft')
+      if (draft) {
+        setAdding(true)
+        setForm((f) => ({ ...f, content_text: draft, resource_type: 'text', title: 'AI-generated content' }))
+      }
+    }
   }, [authLoading, user])
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

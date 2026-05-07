@@ -7,10 +7,22 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import Navbar from '@/components/Navbar'
+import AIAssistant from '@/components/AIAssistant'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { TeacherDashboard, Booking } from '@/types'
+
+interface Student {
+  id: number
+  full_name: string
+  email: string
+  country: string
+  lesson_count: number
+  last_lesson: string
+  language_name: string
+}
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -65,16 +77,66 @@ function BookingCard({ booking, onConfirm, onDecline }: { booking: Booking; onCo
   )
 }
 
+function NotesCard({ booking, onSaved }: { booking: Booking; onSaved: () => void }) {
+  const [notes, setNotes] = useState(booking.teacher_notes || '')
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await api.patch(`/api/bookings/${booking.id}/notes/`, { teacher_notes: notes })
+      toast.success('Notes saved.')
+      setEditing(false)
+      onSaved()
+    } catch { toast.error('Could not save notes.') }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="py-3 border-b last:border-0 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium text-sm">{booking.learner_name}</p>
+          <p className="text-xs text-gray-500">{booking.language_name} · {new Date(booking.start_at).toLocaleString()}</p>
+        </div>
+        <Badge className="text-xs border-0 bg-blue-100 text-blue-700 shrink-0">completed</Badge>
+      </div>
+      {editing ? (
+        <div className="space-y-2">
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add lesson notes, progress observations, homework…" rows={3} className="text-xs" />
+          <div className="flex gap-2">
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setEditing(false); setNotes(booking.teacher_notes || '') }}>Cancel</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-start gap-2">
+          {notes ? <p className="text-xs text-gray-600 flex-1">{notes}</p> : <p className="text-xs text-gray-400 flex-1 italic">No notes yet.</p>}
+          <Button size="sm" variant="ghost" className="h-6 text-xs text-gray-400 hover:text-gray-700 shrink-0" onClick={() => setEditing(true)}>
+            {notes ? 'Edit' : '+ Add notes'}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TeacherDashboardPage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [dashboard, setDashboard] = useState<TeacherDashboard | null>(null)
+  const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchDashboard = async () => {
     try {
-      const { data } = await api.get('/api/teachers/dashboard/')
+      const [{ data }, { data: studentData }] = await Promise.all([
+        api.get('/api/teachers/dashboard/'),
+        api.get('/api/teachers/students/'),
+      ])
       setDashboard(data)
+      setStudents(studentData)
     } catch {
       toast.error('Could not load dashboard.')
     } finally {
@@ -170,8 +232,57 @@ export default function TeacherDashboardPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Recent completed lessons with notes */}
+          {(dashboard?.recent_completions?.length ?? 0) > 0 && (
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Recent completed lessons</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dashboard!.recent_completions.map((b) => (
+                  <NotesCard key={b.id} booking={b} onSaved={fetchDashboard} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Students */}
+          {students.length > 0 && (
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">My students ({students.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {students.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between px-5 py-3 gap-4">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm">{s.full_name}</p>
+                        <p className="text-xs text-gray-500">{s.country} · {s.language_name}</p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 text-right">
+                        <div>
+                          <p className="text-xs text-gray-500">{s.lesson_count} lesson{s.lesson_count !== 1 ? 's' : ''}</p>
+                          <p className="text-xs text-gray-400">Last: {new Date(s.last_lesson).toLocaleDateString()}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">{s.email}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
+
+      <AIAssistant
+        role="teacher"
+        onSaveAsResource={(content) => {
+          router.push('/teacher/resources?draft=' + encodeURIComponent(content.slice(0, 200)))
+        }}
+      />
     </div>
   )
 }

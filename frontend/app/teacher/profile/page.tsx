@@ -23,7 +23,11 @@ export default function TeacherProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [newLang, setNewLang] = useState({ language_name: '', proficiency_type: 'fluent' })
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [form, setForm] = useState({ headline: '', bio: '', lesson_format: 'online', years_experience: '', pricing_info: '', profile_photo_url: '', intro_audio_url: '' })
+  const [form, setForm] = useState({
+    headline: '', bio: '', lesson_format: 'online', years_experience: '',
+    pricing_info: '', profile_photo_url: '', intro_audio_url: '',
+    teaching_levels: [] as string[], age_groups: [] as string[], certifications: '',
+  })
 
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return }
@@ -40,6 +44,9 @@ export default function TeacherProfilePage() {
             pricing_info: r.data.pricing_info || '',
             profile_photo_url: r.data.profile_photo_url || '',
             intro_audio_url: r.data.intro_audio_url || '',
+            teaching_levels: r.data.teaching_levels || [],
+            age_groups: r.data.age_groups || [],
+            certifications: r.data.certifications || '',
           })
         })
         .finally(() => setLoading(false))
@@ -109,6 +116,12 @@ export default function TeacherProfilePage() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }))
 
+  const toggleArrayItem = (key: 'teaching_levels' | 'age_groups', value: string) =>
+    setForm((f) => ({
+      ...f,
+      [key]: f[key].includes(value) ? f[key].filter((v) => v !== value) : [...f[key], value],
+    }))
+
   if (authLoading || loading) return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>
 
   return (
@@ -159,6 +172,42 @@ export default function TeacherProfilePage() {
                   <Input value={form.pricing_info} onChange={set('pricing_info')} placeholder="e.g. $30/hr" />
                 </div>
               </div>
+
+              <div className="space-y-1">
+                <Label>Teaching levels</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['beginner', 'intermediate', 'advanced'].map((l) => (
+                    <button key={l} type="button" onClick={() => toggleArrayItem('teaching_levels', l)}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
+                        form.teaching_levels.includes(l)
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400'
+                      }`}
+                    >{l}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Age groups</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['children', 'teens', 'adults', 'seniors'].map((g) => (
+                    <button key={g} type="button" onClick={() => toggleArrayItem('age_groups', g)}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors capitalize ${
+                        form.age_groups.includes(g)
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-400'
+                      }`}
+                    >{g}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Certifications <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <Textarea value={form.certifications} onChange={set('certifications')} placeholder="e.g. TEFL certified, BA in Linguistics…" rows={2} />
+              </div>
+
               <div className="space-y-1">
                 <Label>Profile photo</Label>
                 <div className="flex items-center gap-4">

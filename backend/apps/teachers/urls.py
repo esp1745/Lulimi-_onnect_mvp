@@ -6,6 +6,7 @@ from .views import (
     AvailabilityListCreateView, AvailabilityDetailView,
     TeacherAvailabilityPublicView,
     TeacherDashboardView,
+    TeacherStudentListView,
 )
 
 urlpatterns = [
@@ -30,4 +31,5 @@ urlpatterns = [
 
     # Dashboard
     path('dashboard/', TeacherDashboardView.as_view(), name='teacher-dashboard'),
+    path('students/', TeacherStudentListView.as_view(), name='teacher-students'),
 ]

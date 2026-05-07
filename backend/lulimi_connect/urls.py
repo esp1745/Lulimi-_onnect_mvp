@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/bookings/', include('apps.bookings.urls')),
     path('api/resources/', include('apps.resources.urls')),
     path('api/notifications/', include('apps.notifications.urls')),
+    path('api/ai/', include('apps.ai_assistant.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

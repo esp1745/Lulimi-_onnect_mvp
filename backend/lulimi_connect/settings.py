@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'apps.bookings',
     'apps.resources',
     'apps.notifications',
+    'apps.ai_assistant',
 ]
 
 MIDDLEWARE = [
