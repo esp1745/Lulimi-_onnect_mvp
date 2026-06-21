@@ -102,7 +102,7 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS = [o for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o]
+CORS_ALLOWED_ORIGINS = [o.rstrip('/') for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o]
 
 # Email
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
