@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -39,7 +39,7 @@ const EMPTY_FORM = {
   file_url: '',
 }
 
-export default function ResourcesPage() {
+function ResourcesContent() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -326,5 +326,13 @@ export default function ResourcesPage() {
         <Button variant="outline" onClick={() => router.push('/teacher/dashboard')}>← Back to dashboard</Button>
       </div>
     </div>
+  )
+}
+
+export default function ResourcesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>}>
+      <ResourcesContent />
+    </Suspense>
   )
 }
