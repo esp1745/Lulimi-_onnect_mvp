@@ -19,7 +19,9 @@ export default function Navbar() {
     <header className="border-b px-6 py-4 flex items-center justify-between bg-white sticky top-0 z-10">
       <Link href="/" className="text-xl font-bold text-emerald-700">Lulimi Connect</Link>
       <nav className="flex items-center gap-4">
-        <Link href="/marketplace" className="text-sm text-gray-600 hover:text-emerald-700">Marketplace</Link>
+        {(!user || user.role !== 'teacher') && (
+          <Link href="/marketplace" className="text-sm text-gray-600 hover:text-emerald-700">Marketplace</Link>
+        )}
         {user ? (
           <>
             <Link href={user.role === 'teacher' ? '/teacher/dashboard' : '/learner/dashboard'}>

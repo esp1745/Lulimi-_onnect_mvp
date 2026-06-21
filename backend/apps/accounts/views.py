@@ -9,6 +9,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from .serializers import RegisterSerializer, UserSerializer
 from apps.notifications.models import Notification
 from apps.notifications import email as notify_email
+from apps.learners.models import Learner
+from apps.teachers.models import Teacher
 
 User = get_user_model()
 _token_generator = PasswordResetTokenGenerator()
@@ -23,6 +25,11 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
+
+        if user.role == 'learner':
+            Learner.objects.get_or_create(user=user)
+        elif user.role == 'teacher':
+            Teacher.objects.get_or_create(user=user)
 
         Notification.objects.create(
             user=user,

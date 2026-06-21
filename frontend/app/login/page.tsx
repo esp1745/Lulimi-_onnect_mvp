@@ -23,6 +23,7 @@ export default function LoginPage() {
       const user = await login(email, password)
       toast.success('Welcome back!')
       if (user.role === 'teacher') router.push('/teacher/dashboard')
+      else if (user.role === 'admin') window.location.href = 'http://localhost:8000/admin'
       else router.push('/learner/dashboard')
     } catch {
       toast.error('Invalid email or password.')
