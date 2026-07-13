@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import GoogleSignInButton from '@/components/GoogleSignInButton'
 import { useAuth } from '@/hooks/useAuth'
+import { User } from '@/types'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -16,20 +18,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const routeForUser = (user: User) => {
+    if (user.role === 'teacher') router.push('/teacher/dashboard')
+    else if (user.role === 'admin') window.location.href = 'http://localhost:8000/admin'
+    else router.push('/learner/dashboard')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
       const user = await login(email, password)
       toast.success('Welcome back!')
-      if (user.role === 'teacher') router.push('/teacher/dashboard')
-      else if (user.role === 'admin') window.location.href = 'http://localhost:8000/admin'
-      else router.push('/learner/dashboard')
+      routeForUser(user)
     } catch {
       toast.error('Invalid email or password.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGoogleSuccess = (user: User) => {
+    toast.success('Welcome back!')
+    routeForUser(user)
   }
 
   return (
@@ -54,6 +65,12 @@ export default function LoginPage() {
               {loading ? 'Logging in…' : 'Log in'}
             </Button>
           </form>
+          <div className="flex items-center gap-3 my-4">
+            <div className="h-px bg-gray-200 flex-1" />
+            <span className="text-xs text-gray-400">or</span>
+            <div className="h-px bg-gray-200 flex-1" />
+          </div>
+          <GoogleSignInButton onSuccess={handleGoogleSuccess} />
           <p className="text-center text-sm text-gray-500 mt-4">
             Don't have an account?{' '}
             <Link href="/register" className="text-emerald-600 hover:underline font-medium">Sign up</Link>

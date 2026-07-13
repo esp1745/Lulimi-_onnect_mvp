@@ -29,8 +29,8 @@ class TeacherSerializer(serializers.ModelSerializer):
             'id', 'full_name', 'country', 'timezone', 'headline', 'bio',
             'lesson_format', 'teaching_levels', 'age_groups', 'years_experience',
             'certifications', 'pricing_info', 'profile_photo_url', 'intro_audio_url',
-            'is_published', 'approval_status', 'is_featured', 'languages', 'availability',
-            'created_at', 'updated_at',
+            'whatsapp_number', 'is_published', 'approval_status', 'is_featured',
+            'languages', 'availability', 'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'approval_status', 'is_featured', 'created_at', 'updated_at']
 
@@ -46,5 +46,5 @@ class TeacherPublicSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'full_name', 'country', 'headline', 'bio', 'lesson_format',
             'teaching_levels', 'profile_photo_url', 'intro_audio_url',
-            'is_featured', 'languages',
+            'whatsapp_number', 'is_featured', 'languages',
         ]

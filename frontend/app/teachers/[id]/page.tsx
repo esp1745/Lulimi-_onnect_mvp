@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -9,9 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Navbar from '@/components/Navbar'
+import PhoneNumberInput from '@/components/PhoneNumberInput'
 import api from '@/lib/api'
 import { Teacher, Availability } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
+import { buildWhatsAppLink } from '@/lib/whatsapp'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -21,7 +24,7 @@ export default function TeacherProfilePage() {
   const router = useRouter()
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [availability, setAvailability] = useState<Availability[]>([])
-  const [booking, setBooking] = useState({ start_at: '', end_at: '', language_name: '', timezone_snapshot: Intl.DateTimeFormat().resolvedOptions().timeZone })
+  const [booking, setBooking] = useState({ start_at: '', end_at: '', language_name: '', learner_whatsapp_number: '', timezone_snapshot: Intl.DateTimeFormat().resolvedOptions().timeZone })
   // raw datetime-local string values (YYYY-MM-DDTHH:MM)
   const [startRaw, setStartRaw] = useState('')
   const [endRaw, setEndRaw] = useState('')
@@ -45,6 +48,13 @@ export default function TeacherProfilePage() {
     if (user.role !== 'learner') { toast.error('Only learners can book lessons.'); return }
     setBookingLoading(true)
     try {
+      const { data: availabilityCheck } = await api.get(`/api/teachers/${id}/availability/check/`, {
+        params: { start: booking.start_at, end: booking.end_at },
+      })
+      if (!availabilityCheck.available) {
+        toast.error('This teacher already has a lesson booked during that time. Please pick another slot.')
+        return
+      }
       await api.post('/api/bookings/', { teacher: Number(id), ...booking })
       toast.success('Booking request sent! The teacher will confirm shortly.')
     } catch (err: any) {
@@ -80,6 +90,17 @@ export default function TeacherProfilePage() {
                 ))}
                 <Badge variant="outline" className="capitalize">{teacher.lesson_format?.replace('_', ' ')}</Badge>
               </div>
+              {teacher.whatsapp_number && (
+                <a
+                  href={buildWhatsAppLink(teacher.whatsapp_number, `Hi ${teacher.full_name}, I found your profile on Lulimi Connect and would like to ask about lessons.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-emerald-600 hover:underline mt-2"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Message on WhatsApp
+                </a>
+              )}
             </div>
           </div>
 
@@ -157,6 +178,14 @@ export default function TeacherProfilePage() {
                       }}
                       required
                     />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Your WhatsApp number <span className="text-gray-400 font-normal">(optional)</span></Label>
+                    <PhoneNumberInput
+                      value={booking.learner_whatsapp_number}
+                      onChange={(v) => setBooking((b) => ({ ...b, learner_whatsapp_number: v }))}
+                    />
+                    <p className="text-xs text-gray-400">Share this if you&apos;d like to move the conversation to WhatsApp.</p>
                   </div>
                   <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white" disabled={booking_loading}>
                     {booking_loading ? 'Sending…' : user ? 'Request lesson' : 'Log in to book'}

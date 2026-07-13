@@ -25,6 +25,7 @@ class Teacher(models.Model):
     pricing_info = models.CharField(max_length=255, blank=True)
     profile_photo_url = models.URLField(blank=True)
     intro_audio_url = models.URLField(blank=True)
+    whatsapp_number = models.CharField(max_length=20, blank=True)
     is_published = models.BooleanField(default=False)
     approval_status = models.CharField(max_length=10, choices=APPROVAL_STATUS, default='pending')
     is_featured = models.BooleanField(default=False)

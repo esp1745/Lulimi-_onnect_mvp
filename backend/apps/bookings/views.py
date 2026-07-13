@@ -1,12 +1,15 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from .models import Booking
 from .serializers import BookingSerializer, BookingStatusSerializer
 from apps.teachers.models import Teacher
 from apps.notifications.models import Notification
 from apps.notifications import email as notify_email
+from apps.calendar_integration.models import GoogleCalendarAccount
+from apps.calendar_integration import google_client
 
 
 def _create_notification(user, notification_type, title, body):
@@ -24,6 +27,18 @@ class BookingCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
+        teacher = serializer.validated_data['teacher']
+        start_at = serializer.validated_data['start_at']
+        end_at = serializer.validated_data['end_at']
+        overlap_exists = Booking.objects.filter(
+            teacher=teacher,
+            status__in=['pending', 'confirmed'],
+            start_at__lt=end_at,
+            end_at__gt=start_at,
+        ).exists()
+        if overlap_exists:
+            raise ValidationError({'detail': 'This teacher already has a booking during that time.'})
+
         booking = serializer.save(learner=self.request.user)
         teacher_user = booking.teacher.user
         _create_notification(
@@ -83,6 +98,34 @@ class BookingConfirmView(APIView):
         meeting_link = request.data.get('external_meeting_link', '')
         if meeting_link:
             booking.external_meeting_link = meeting_link
+
+        teacher_account = GoogleCalendarAccount.objects.filter(user=request.user).first()
+        if teacher_account:
+            try:
+                event_id, hangout_link = google_client.create_event(
+                    teacher_account, booking,
+                    meeting_link=booking.external_meeting_link,
+                    generate_meet_link=not booking.external_meeting_link,
+                )
+                booking.google_event_id = event_id
+                if hangout_link:
+                    booking.external_meeting_link = hangout_link
+            except Exception:
+                pass
+
+        learner_account = GoogleCalendarAccount.objects.filter(user=booking.learner).first()
+        if learner_account:
+            try:
+                event_id, _ = google_client.create_event(
+                    learner_account, booking,
+                    meeting_link=booking.external_meeting_link,
+                    generate_meet_link=False,
+                    notify_attendees=False,
+                )
+                booking.learner_google_event_id = event_id
+            except Exception:
+                pass
+
         booking.save()
 
         _create_notification(
@@ -129,6 +172,22 @@ class BookingCancelView(APIView):
 
         if booking.status not in ['pending', 'confirmed']:
             return Response({'detail': 'Cannot cancel this booking.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if booking.google_event_id:
+            account = GoogleCalendarAccount.objects.filter(user=booking.teacher.user).first()
+            if account:
+                try:
+                    google_client.delete_event(account, booking.google_event_id)
+                except Exception:
+                    pass
+
+        if booking.learner_google_event_id:
+            account = GoogleCalendarAccount.objects.filter(user=booking.learner).first()
+            if account:
+                try:
+                    google_client.delete_event(account, booking.learner_google_event_id)
+                except Exception:
+                    pass
 
         booking.status = 'cancelled'
         booking.save()

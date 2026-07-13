@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import GoogleSignInButton from '@/components/GoogleSignInButton'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
+import { User } from '@/types'
 import Cookies from 'js-cookie'
 
 function RegisterForm() {
@@ -39,6 +41,12 @@ function RegisterForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGoogleSuccess = (user: User) => {
+    toast.success('Account ready!')
+    if (user.role === 'teacher') router.push('/teacher/dashboard')
+    else router.push('/learner/dashboard')
   }
 
   return (
@@ -86,6 +94,12 @@ function RegisterForm() {
               {loading ? 'Creating account…' : 'Create account'}
             </Button>
           </form>
+          <div className="flex items-center gap-3 my-4">
+            <div className="h-px bg-gray-200 flex-1" />
+            <span className="text-xs text-gray-400">or</span>
+            <div className="h-px bg-gray-200 flex-1" />
+          </div>
+          <GoogleSignInButton role={form.role as 'teacher' | 'learner'} onSuccess={handleGoogleSuccess} />
           <p className="text-center text-sm text-gray-500 mt-4">
             Already have an account?{' '}
             <Link href="/login" className="text-emerald-600 hover:underline font-medium">Log in</Link>

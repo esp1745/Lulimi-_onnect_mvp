@@ -5,6 +5,7 @@ from .views import (
     TeacherLanguageListCreateView, TeacherLanguageDeleteView,
     AvailabilityListCreateView, AvailabilityDetailView,
     TeacherAvailabilityPublicView,
+    TeacherAvailabilityCheckView,
     TeacherDashboardView,
     TeacherStudentListView,
 )
@@ -28,6 +29,7 @@ urlpatterns = [
 
     # Public availability with optional timezone conversion
     path('<int:pk>/availability/', TeacherAvailabilityPublicView.as_view(), name='teacher-availability-public'),
+    path('<int:pk>/availability/check/', TeacherAvailabilityCheckView.as_view(), name='teacher-availability-check'),
 
     # Dashboard
     path('dashboard/', TeacherDashboardView.as_view(), name='teacher-dashboard'),

@@ -5,11 +5,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from .models import Teacher, TeacherLanguage, Availability
 from .serializers import TeacherSerializer, TeacherPublicSerializer, TeacherLanguageSerializer, AvailabilitySerializer
 from apps.bookings.models import Booking
 from apps.bookings.serializers import BookingSerializer
 from apps.accounts.models import User
+from apps.calendar_integration.models import GoogleCalendarAccount
+from apps.calendar_integration import google_client
 
 
 class IsTeacher(permissions.BasePermission):
@@ -166,6 +169,43 @@ class TeacherAvailabilityPublicView(APIView):
             result.append(entry)
 
         return Response(result)
+
+
+class TeacherAvailabilityCheckView(APIView):
+    """Checks whether a teacher is actually free for a given time range, factoring in
+    existing bookings and (if connected) their live Google Calendar busy times."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        teacher = get_object_or_404(Teacher, pk=pk, is_published=True, approval_status='approved')
+
+        start_at = parse_datetime(request.query_params.get('start', ''))
+        end_at = parse_datetime(request.query_params.get('end', ''))
+        if not start_at or not end_at:
+            return Response({'detail': 'start and end query params (ISO 8601) are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        overlap_exists = Booking.objects.filter(
+            teacher=teacher,
+            status__in=['pending', 'confirmed'],
+            start_at__lt=end_at,
+            end_at__gt=start_at,
+        ).exists()
+        if overlap_exists:
+            return Response({'available': False})
+
+        account = GoogleCalendarAccount.objects.filter(user=teacher.user).first()
+        if account:
+            try:
+                busy_intervals = google_client.get_busy_intervals(account, start_at, end_at)
+                for busy in busy_intervals:
+                    busy_start = parse_datetime(busy['start'])
+                    busy_end = parse_datetime(busy['end'])
+                    if busy_start < end_at and busy_end > start_at:
+                        return Response({'available': False})
+            except Exception:
+                pass
+
+        return Response({'available': True})
 
 
 class TeacherDashboardView(APIView):

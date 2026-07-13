@@ -28,6 +28,10 @@ class LearnerDashboardView(APIView):
         now = timezone.now()
         user = request.user
 
+        pending_requests = Booking.objects.filter(
+            learner=user, status='pending',
+        ).order_by('start_at')
+
         upcoming = Booking.objects.filter(
             learner=user, status='confirmed', start_at__gte=now,
         ).order_by('start_at')[:10]
@@ -42,6 +46,7 @@ class LearnerDashboardView(APIView):
         ).distinct().order_by('-created_at')[:20]
 
         return Response({
+            'pending_requests': BookingSerializer(pending_requests, many=True).data,
             'upcoming_lessons': BookingSerializer(upcoming, many=True).data,
             'past_lessons': BookingSerializer(past, many=True).data,
             'saved_resources': ResourceSerializer(saved_resources, many=True).data,

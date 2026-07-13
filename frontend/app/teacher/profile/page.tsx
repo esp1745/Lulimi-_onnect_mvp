@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -10,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import Navbar from '@/components/Navbar'
+import PhoneNumberInput from '@/components/PhoneNumberInput'
+import GoogleCalendarCard from '@/components/GoogleCalendarCard'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { Teacher } from '@/types'
 
-export default function TeacherProfilePage() {
+function TeacherProfileContent() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [teacher, setTeacher] = useState<Teacher | null>(null)
@@ -25,7 +27,7 @@ export default function TeacherProfilePage() {
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({
     headline: '', bio: '', lesson_format: 'online', years_experience: '',
-    pricing_info: '', profile_photo_url: '', intro_audio_url: '',
+    pricing_info: '', profile_photo_url: '', intro_audio_url: '', whatsapp_number: '',
     teaching_levels: [] as string[], age_groups: [] as string[], certifications: '',
   })
 
@@ -44,6 +46,7 @@ export default function TeacherProfilePage() {
             pricing_info: r.data.pricing_info || '',
             profile_photo_url: r.data.profile_photo_url || '',
             intro_audio_url: r.data.intro_audio_url || '',
+            whatsapp_number: r.data.whatsapp_number || '',
             teaching_levels: r.data.teaching_levels || [],
             age_groups: r.data.age_groups || [],
             certifications: r.data.certifications || '',
@@ -242,6 +245,11 @@ export default function TeacherProfilePage() {
                 <Label>Intro audio URL</Label>
                 <Input value={form.intro_audio_url} onChange={set('intro_audio_url')} placeholder="https://… (mp3 or wav)" />
               </div>
+              <div className="space-y-1">
+                <Label>WhatsApp number <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <PhoneNumberInput value={form.whatsapp_number} onChange={(v) => setForm((f) => ({ ...f, whatsapp_number: v }))} />
+                <p className="text-xs text-gray-400">Shown to learners as a &quot;Message on WhatsApp&quot; button on your public profile.</p>
+              </div>
               <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white" disabled={saving}>
                 {saving ? 'Saving…' : 'Save profile'}
               </Button>
@@ -272,10 +280,23 @@ export default function TeacherProfilePage() {
           </CardContent>
         </Card>
 
+        <GoogleCalendarCard
+          connectedDescription="Confirmed lessons automatically get a Google Meet link and show up on your calendar."
+          disconnectedDescription="Connect your Google Calendar to auto-create Meet links and keep your availability in sync."
+        />
+
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => router.push('/teacher/dashboard')}>← Back to dashboard</Button>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TeacherProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>}>
+      <TeacherProfileContent />
+    </Suspense>
   )
 }

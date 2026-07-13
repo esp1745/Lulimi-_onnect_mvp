@@ -2,10 +2,13 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 from .serializers import RegisterSerializer, UserSerializer
 from apps.notifications.models import Notification
 from apps.notifications import email as notify_email
@@ -14,6 +17,22 @@ from apps.teachers.models import Teacher
 
 User = get_user_model()
 _token_generator = PasswordResetTokenGenerator()
+
+
+def _provision_new_user(user):
+    """Shared post-creation setup for both password and Google sign-up."""
+    if user.role == 'learner':
+        Learner.objects.get_or_create(user=user)
+    elif user.role == 'teacher':
+        Teacher.objects.get_or_create(user=user)
+
+    Notification.objects.create(
+        user=user,
+        notification_type='welcome',
+        title='Welcome to Lulimi Connect',
+        body='Your account is ready. Start exploring African language teachers.',
+    )
+    notify_email.send_welcome_email(user)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -26,24 +45,63 @@ class RegisterView(generics.CreateAPIView):
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
 
-        if user.role == 'learner':
-            Learner.objects.get_or_create(user=user)
-        elif user.role == 'teacher':
-            Teacher.objects.get_or_create(user=user)
-
-        Notification.objects.create(
-            user=user,
-            notification_type='welcome',
-            title='Welcome to Lulimi Connect',
-            body='Your account is ready. Start exploring African language teachers.',
-        )
-        notify_email.send_welcome_email(user)
+        _provision_new_user(user)
 
         return Response({
             'user': UserSerializer(user).data,
             'access': str(refresh.access_token),
             'refresh': str(refresh),
         }, status=status.HTTP_201_CREATED)
+
+
+class GoogleAuthView(APIView):
+    """Sign in (existing account) or sign up (new account) with a Google ID token.
+
+    `role` is only required when the Google email doesn't match an existing
+    account yet — it's ignored for an existing account since it already has one.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        credential = request.data.get('credential', '')
+        role = request.data.get('role', '')
+
+        try:
+            payload = google_id_token.verify_oauth2_token(
+                credential, google_requests.Request(), settings.GOOGLE_OAUTH_CLIENT_ID,
+            )
+        except ValueError:
+            return Response({'detail': 'Invalid Google credential.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not payload.get('email_verified'):
+            return Response({'detail': 'Google account email is not verified.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = payload['email']
+        user = User.objects.filter(email=email).first()
+        created = False
+
+        if not user:
+            if role not in ('teacher', 'learner'):
+                return Response(
+                    {'detail': 'No account found for this Google email. Sign up first and choose a role.'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            user = User.objects.create_user(
+                email=email, password=None,
+                full_name=payload.get('name', email.split('@')[0]), role=role,
+            )
+            created = True
+
+        refresh = RefreshToken.for_user(user)
+
+        if created:
+            _provision_new_user(user)
+
+        return Response({
+            'user': UserSerializer(user).data,
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 class LogoutView(APIView):

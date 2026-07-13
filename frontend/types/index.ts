@@ -29,6 +29,7 @@ export interface Teacher {
   pricing_info: string
   profile_photo_url: string
   intro_audio_url: string
+  whatsapp_number: string
   is_published: boolean
   approval_status: 'pending' | 'approved' | 'rejected'
   is_featured: boolean
@@ -54,6 +55,7 @@ export interface Booking {
   id: number
   teacher: number
   teacher_name: string
+  teacher_whatsapp_number: string
   learner: number
   learner_name: string
   language_name: string
@@ -62,6 +64,7 @@ export interface Booking {
   timezone_snapshot: string
   status: 'pending' | 'confirmed' | 'declined' | 'completed' | 'cancelled'
   external_meeting_link: string
+  learner_whatsapp_number: string
   teacher_notes: string
   learner_notes: string
   created_at: string
@@ -98,6 +101,7 @@ export interface TeacherDashboard {
 }
 
 export interface LearnerDashboard {
+  pending_requests: Booking[]
   upcoming_lessons: Booking[]
   past_lessons: Booking[]
   saved_resources: Resource[]

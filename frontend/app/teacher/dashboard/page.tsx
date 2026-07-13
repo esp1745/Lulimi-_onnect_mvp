@@ -12,6 +12,8 @@ import Navbar from '@/components/Navbar'
 import AIAssistant from '@/components/AIAssistant'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
+import { buildGoogleCalendarUrl } from '@/lib/googleCalendar'
+import { buildWhatsAppLink } from '@/lib/whatsapp'
 import { TeacherDashboard, Booking } from '@/types'
 
 interface Student {
@@ -42,9 +44,24 @@ function BookingCard({ booking, onConfirm, onDecline }: { booking: Booking; onCo
         <div className="min-w-0">
           <p className="font-medium text-sm">{booking.learner_name}</p>
           <p className="text-xs text-gray-500">{booking.language_name} · {new Date(booking.start_at).toLocaleString()}</p>
-          {booking.external_meeting_link && (
-            <a href={booking.external_meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">Join lesson →</a>
-          )}
+          <div className="flex items-center gap-3">
+            {booking.external_meeting_link && (
+              <a href={booking.external_meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">Join lesson →</a>
+            )}
+            {booking.status === 'confirmed' && (
+              <a href={buildGoogleCalendarUrl(booking)} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:underline">+ Add to Google Calendar</a>
+            )}
+            {booking.learner_whatsapp_number && ['pending', 'confirmed'].includes(booking.status) && (
+              <a
+                href={buildWhatsAppLink(booking.learner_whatsapp_number, `Hi ${booking.learner_name}, this is regarding your ${booking.language_name} lesson request on Lulimi Connect.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-500 hover:underline"
+              >
+                Continue on WhatsApp
+              </a>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Badge className={`text-xs border-0 ${STATUS_COLORS[booking.status]}`}>{booking.status}</Badge>

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Navbar from '@/components/Navbar'
+import GoogleCalendarCard from '@/components/GoogleCalendarCard'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
-import { LearnerDashboard, Resource } from '@/types'
+import { buildGoogleCalendarUrl } from '@/lib/googleCalendar'
+import { buildWhatsAppLink } from '@/lib/whatsapp'
+import { LearnerDashboard, Resource, Booking } from '@/types'
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -17,6 +20,43 @@ const STATUS_COLORS: Record<string, string> = {
   declined: 'bg-red-100 text-red-700',
   cancelled: 'bg-gray-100 text-gray-500',
   completed: 'bg-blue-100 text-blue-700',
+}
+
+function BookingRow({ booking, onCancel }: { booking: Booking; onCancel?: () => void }) {
+  return (
+    <div className="py-3 border-b last:border-0">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-medium text-sm">{booking.teacher_name}</p>
+          <p className="text-xs text-gray-500">{booking.language_name} · {new Date(booking.start_at).toLocaleString()}</p>
+          <div className="flex items-center gap-3">
+            {booking.external_meeting_link && (
+              <a href={booking.external_meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">Join lesson →</a>
+            )}
+            {booking.status === 'confirmed' && (
+              <a href={buildGoogleCalendarUrl(booking)} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-500 hover:underline">+ Add to Google Calendar</a>
+            )}
+            {booking.teacher_whatsapp_number && (
+              <a
+                href={buildWhatsAppLink(booking.teacher_whatsapp_number, `Hi ${booking.teacher_name}, this is regarding my ${booking.language_name} lesson request on Lulimi Connect.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gray-500 hover:underline"
+              >
+                Continue on WhatsApp
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Badge className={`text-xs border-0 ${STATUS_COLORS[booking.status]}`}>{booking.status}</Badge>
+          {onCancel && (
+            <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-200 hover:bg-red-50" onClick={onCancel}>Cancel</Button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function ResourceCard({ resource }: { resource: Resource }) {
@@ -43,7 +83,7 @@ function ResourceCard({ resource }: { resource: Resource }) {
   )
 }
 
-export default function LearnerDashboardPage() {
+function LearnerDashboardContent() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [dashboard, setDashboard] = useState<LearnerDashboard | null>(null)
@@ -86,6 +126,22 @@ export default function LearnerDashboardPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
+          {/* Pending requests */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Pending requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dashboard?.pending_requests.length === 0 ? (
+                <p className="text-sm text-gray-400">No pending requests.</p>
+              ) : (
+                dashboard?.pending_requests.map((b) => (
+                  <BookingRow key={b.id} booking={b} onCancel={() => handleCancel(b.id)} />
+                ))
+              )}
+            </CardContent>
+          </Card>
+
           {/* Upcoming lessons */}
           <Card>
             <CardHeader className="pb-2">
@@ -99,23 +155,7 @@ export default function LearnerDashboardPage() {
                 </div>
               ) : (
                 dashboard?.upcoming_lessons.map((b) => (
-                  <div key={b.id} className="py-3 border-b last:border-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-sm">{b.teacher_name}</p>
-                        <p className="text-xs text-gray-500">{b.language_name} · {new Date(b.start_at).toLocaleString()}</p>
-                        {b.external_meeting_link && (
-                          <a href={b.external_meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 hover:underline">Join lesson →</a>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge className={`text-xs border-0 ${STATUS_COLORS[b.status]}`}>{b.status}</Badge>
-                        {b.status === 'confirmed' && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-200 hover:bg-red-50" onClick={() => handleCancel(b.id)}>Cancel</Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <BookingRow key={b.id} booking={b} onCancel={() => handleCancel(b.id)} />
                 ))
               )}
             </CardContent>
@@ -155,9 +195,24 @@ export default function LearnerDashboardPage() {
             </CardContent>
           </Card>
 
+          <div className="md:col-span-2">
+            <GoogleCalendarCard
+              connectedDescription="Lessons you book automatically get added to your calendar too."
+              disconnectedDescription="Connect your Google Calendar to automatically add booked lessons to your own calendar."
+            />
+          </div>
+
         </div>
       </div>
 
     </div>
+  )
+}
+
+export default function LearnerDashboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>}>
+      <LearnerDashboardContent />
+    </Suspense>
   )
 }
