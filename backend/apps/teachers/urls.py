@@ -3,6 +3,8 @@ from .views import (
     TeacherProfileView, TeacherPublicProfileView, PublishTeacherProfileView,
     MarketplaceView,
     TeacherLanguageListCreateView, TeacherLanguageDeleteView,
+    TeacherReviewListView,
+    TeacherPackageListCreateView, TeacherPackageDeleteView,
     AvailabilityListCreateView, AvailabilityDetailView,
     TeacherAvailabilityPublicView,
     TeacherAvailabilityCheckView,
@@ -15,6 +17,7 @@ urlpatterns = [
     path('profile/', TeacherProfileView.as_view(), name='teacher-profile'),
     path('profile/publish/', PublishTeacherProfileView.as_view(), name='teacher-publish'),
     path('<int:pk>/public/', TeacherPublicProfileView.as_view(), name='teacher-public-profile'),
+    path('<int:pk>/reviews/', TeacherReviewListView.as_view(), name='teacher-reviews'),
 
     # Marketplace
     path('marketplace/', MarketplaceView.as_view(), name='marketplace'),
@@ -22,6 +25,10 @@ urlpatterns = [
     # Languages
     path('languages/', TeacherLanguageListCreateView.as_view(), name='teacher-languages'),
     path('languages/<int:pk>/', TeacherLanguageDeleteView.as_view(), name='teacher-language-delete'),
+
+    # Packages
+    path('packages/', TeacherPackageListCreateView.as_view(), name='teacher-packages'),
+    path('packages/<int:pk>/', TeacherPackageDeleteView.as_view(), name='teacher-package-delete'),
 
     # Availability
     path('availability/', AvailabilityListCreateView.as_view(), name='availability-list'),

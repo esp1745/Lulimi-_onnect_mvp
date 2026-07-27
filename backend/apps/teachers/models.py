@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.conf import settings
 
@@ -23,9 +24,18 @@ class Teacher(models.Model):
     years_experience = models.PositiveIntegerField(null=True, blank=True)
     certifications = models.TextField(blank=True)
     pricing_info = models.CharField(max_length=255, blank=True)
+    price = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)  # numeric hourly rate (USD)
     profile_photo_url = models.URLField(blank=True)
     intro_audio_url = models.URLField(blank=True)
     whatsapp_number = models.CharField(max_length=20, blank=True)
+    region = models.CharField(max_length=100, blank=True)
+    institution = models.CharField(max_length=255, blank=True)
+    professional_role = models.CharField(max_length=255, blank=True)
+    education = models.JSONField(default=list, blank=True)  # [{"degree": "...", "institution": "..."}]
+    work_experience = models.JSONField(default=list, blank=True)  # [{"role","organization","startDate","endDate","description"}]
+    specializations = models.JSONField(default=list, blank=True)  # ["Conversational", "Business Language", ...]
+    services = models.JSONField(default=list, blank=True)  # ["1-on-1 Lessons", "Group Classes", ...]
+    badge = models.CharField(max_length=100, blank=True)  # admin-assigned recognition label, e.g. "Top Rated"
     is_published = models.BooleanField(default=False)
     approval_status = models.CharField(max_length=10, choices=APPROVAL_STATUS, default='pending')
     is_featured = models.BooleanField(default=False)
@@ -69,3 +79,58 @@ class Availability(models.Model):
 
     def __str__(self):
         return f"{self.teacher.user.full_name} - {self.get_day_of_week_display()} {self.start_time}-{self.end_time}"
+
+
+SCORE_VALIDATORS = [MinValueValidator(1), MaxValueValidator(5)]
+
+
+class Review(models.Model):
+    """A learner's review of a teacher. Submission is not yet exposed in the
+    frontend; rows are created via the admin (seed/manual) for now."""
+
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='reviews')
+    learner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='teacher_reviews')
+    booking = models.ForeignKey('bookings.Booking', on_delete=models.SET_NULL, null=True, blank=True, related_name='reviews')
+    rating = models.PositiveSmallIntegerField(validators=SCORE_VALIDATORS)
+    knowledge_score = models.PositiveSmallIntegerField(validators=SCORE_VALIDATORS, null=True, blank=True)
+    value_score = models.PositiveSmallIntegerField(validators=SCORE_VALIDATORS, null=True, blank=True)
+    responsiveness_score = models.PositiveSmallIntegerField(validators=SCORE_VALIDATORS, null=True, blank=True)
+    supportiveness_score = models.PositiveSmallIntegerField(validators=SCORE_VALIDATORS, null=True, blank=True)
+    text = models.TextField(blank=True)
+    tag = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.learner.full_name} -> {self.teacher.user.full_name} ({self.rating}★)"
+
+
+class Follow(models.Model):
+    """A learner following a teacher. Follow/unfollow isn't exposed in the
+    frontend yet; rows are created via the admin (seed/manual) for now."""
+
+    learner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='following')
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='followers')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('learner', 'teacher')
+
+    def __str__(self):
+        return f"{self.learner.full_name} follows {self.teacher.user.full_name}"
+
+
+class TeacherPackage(models.Model):
+    """A teacher-defined, informational pricing bundle (e.g. "10-hour package").
+    Display-only: booking still goes through the normal single-lesson request
+    flow, there is no payment processing behind these."""
+
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='packages')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    hours = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=7, decimal_places=2)
+    savings = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.teacher.user.full_name} - {self.title}"

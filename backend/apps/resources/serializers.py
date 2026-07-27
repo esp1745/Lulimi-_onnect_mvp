@@ -21,4 +21,4 @@ class LessonResourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = LessonResource
         fields = ['id', 'booking', 'resource', 'resource_id', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'booking', 'created_at']

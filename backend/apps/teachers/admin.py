@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Teacher, TeacherLanguage, Availability
+from .models import Teacher, TeacherLanguage, Availability, Review, Follow, TeacherPackage
 from apps.notifications.models import Notification
 from apps.notifications import email as notify_email
 
@@ -55,9 +55,9 @@ _unfeature_teachers.short_description = 'Remove from featured'
 
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
-    list_display = ('user_email', 'user_name', 'lesson_format', 'approval_status', 'is_published', 'is_featured', 'language_list')
-    list_filter = ('approval_status', 'is_published', 'is_featured', 'lesson_format')
-    search_fields = ('user__email', 'user__full_name', 'headline')
+    list_display = ('user_email', 'user_name', 'lesson_format', 'region', 'badge', 'approval_status', 'is_published', 'is_featured', 'language_list')
+    list_filter = ('approval_status', 'is_published', 'is_featured', 'lesson_format', 'region')
+    search_fields = ('user__email', 'user__full_name', 'headline', 'institution')
     actions = [_approve_teachers, _reject_teachers, _feature_teachers, _unfeature_teachers]
     readonly_fields = ('user',)
 
@@ -87,3 +87,22 @@ class AvailabilityAdmin(admin.ModelAdmin):
     list_display = ('teacher', 'day_of_week', 'start_time', 'end_time', 'timezone', 'is_active')
     list_filter = ('day_of_week', 'is_active')
     search_fields = ('teacher__user__full_name',)
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('teacher', 'learner', 'rating', 'created_at')
+    list_filter = ('rating',)
+    search_fields = ('teacher__user__full_name', 'learner__full_name', 'text')
+
+
+@admin.register(Follow)
+class FollowAdmin(admin.ModelAdmin):
+    list_display = ('learner', 'teacher', 'created_at')
+    search_fields = ('teacher__user__full_name', 'learner__full_name')
+
+
+@admin.register(TeacherPackage)
+class TeacherPackageAdmin(admin.ModelAdmin):
+    list_display = ('teacher', 'title', 'hours', 'price', 'savings')
+    search_fields = ('teacher__user__full_name', 'title')

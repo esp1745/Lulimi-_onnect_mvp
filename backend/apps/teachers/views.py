@@ -6,8 +6,11 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from .models import Teacher, TeacherLanguage, Availability
-from .serializers import TeacherSerializer, TeacherPublicSerializer, TeacherLanguageSerializer, AvailabilitySerializer
+from .models import Teacher, TeacherLanguage, Availability, Review, TeacherPackage
+from .serializers import (
+    TeacherSerializer, TeacherPublicSerializer, TeacherLanguageSerializer, AvailabilitySerializer,
+    ReviewSerializer, TeacherPackageSerializer,
+)
 from apps.bookings.models import Booking
 from apps.bookings.serializers import BookingSerializer
 from apps.accounts.models import User
@@ -69,6 +72,7 @@ class MarketplaceView(generics.ListAPIView):
         language = self.request.query_params.get('language')
         lesson_format = self.request.query_params.get('format')
         featured = self.request.query_params.get('featured')
+        region = self.request.query_params.get('region')
 
         if language:
             qs = qs.filter(languages__language_name__icontains=language)
@@ -76,8 +80,22 @@ class MarketplaceView(generics.ListAPIView):
             qs = qs.filter(lesson_format__in=[lesson_format, 'both'])
         if featured:
             qs = qs.filter(is_featured=True)
+        if region:
+            qs = qs.filter(region__iexact=region)
 
-        return qs.distinct().order_by('-is_featured', '-id')
+        qs = qs.distinct().order_by('-is_featured', '-id')
+
+        # JSONField list membership isn't consistently queryable across backends
+        # (sqlite vs postgres), so specialization/service tag filters are applied
+        # in Python after the DB-level filters above narrow the candidate set.
+        specializations = self.request.query_params.getlist('specializations')
+        services = self.request.query_params.getlist('services')
+        if specializations:
+            qs = [t for t in qs if any(s in t.specializations for s in specializations)]
+        if services:
+            qs = [t for t in qs if any(s in t.services for s in services)]
+
+        return qs
 
 
 # --- Teacher Languages ---
@@ -100,6 +118,40 @@ class TeacherLanguageDeleteView(generics.DestroyAPIView):
 
     def get_queryset(self):
         return TeacherLanguage.objects.filter(teacher__user=self.request.user)
+
+
+# --- Reviews ---
+
+class TeacherReviewListView(generics.ListAPIView):
+    """Public, read-only list of a teacher's reviews. Submission isn't exposed yet."""
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        teacher = get_object_or_404(Teacher, pk=self.kwargs['pk'], is_published=True, approval_status='approved')
+        return teacher.reviews.order_by('-created_at')
+
+
+# --- Teacher Packages ---
+
+class TeacherPackageListCreateView(generics.ListCreateAPIView):
+    serializer_class = TeacherPackageSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+    def get_queryset(self):
+        return TeacherPackage.objects.filter(teacher__user=self.request.user)
+
+    def perform_create(self, serializer):
+        teacher, _ = Teacher.objects.get_or_create(user=self.request.user)
+        serializer.save(teacher=teacher)
+
+
+class TeacherPackageDeleteView(generics.DestroyAPIView):
+    serializer_class = TeacherPackageSerializer
+    permission_classes = [permissions.IsAuthenticated, IsTeacher]
+
+    def get_queryset(self):
+        return TeacherPackage.objects.filter(teacher__user=self.request.user)
 
 
 # --- Availability ---
