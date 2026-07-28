@@ -63,6 +63,7 @@ export function TeacherOnboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [furthestStepReached, setFurthestStepReached] = useState(1);
   const [isPublished, setIsPublished] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [formData, setFormData] = useState<OnboardingData>({
@@ -96,9 +97,26 @@ export function TeacherOnboarding() {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
+  // Only the fields the backend actually requires to publish (headline, bio,
+  // at least one language — see PublishTeacherProfileView) are gated here.
+  // The other steps stay optional, matching what publish itself enforces.
+  const stepValidation: Record<number, { isValid: boolean; hint: string }> = {
+    1: {
+      isValid: formData.headline.trim() !== "" && formData.bio.trim() !== "",
+      hint: "Add a headline and bio to continue.",
+    },
+    2: {
+      isValid: formData.selectedLanguages.length > 0,
+      hint: "Select at least one language to continue.",
+    },
+  };
+  const currentStepValidation = stepValidation[currentStep];
+
   const nextStep = () => {
-    if (currentStep < 6) {
-      setCurrentStep(currentStep + 1);
+    if (currentStep < 6 && (currentStepValidation?.isValid ?? true)) {
+      const next = currentStep + 1;
+      setCurrentStep(next);
+      setFurthestStepReached((f) => Math.max(f, next));
     }
   };
 
@@ -109,7 +127,9 @@ export function TeacherOnboarding() {
   };
 
   const goToStep = (step: number) => {
-    setCurrentStep(step);
+    if (step <= furthestStepReached) {
+      setCurrentStep(step);
+    }
   };
 
   const handlePublish = async () => {
@@ -402,13 +422,18 @@ export function TeacherOnboarding() {
             </Button>
 
             <div className="text-sm text-gray-500">
-              Step {currentStep} of 6
+              {currentStepValidation && !currentStepValidation.isValid ? (
+                <span className="text-[#C4622D]">{currentStepValidation.hint}</span>
+              ) : (
+                `Step ${currentStep} of 6`
+              )}
             </div>
 
             {currentStep < 6 ? (
               <Button
                 onClick={nextStep}
-                className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full px-8"
+                disabled={!(currentStepValidation?.isValid ?? true)}
+                className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full px-8 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 Continue
               </Button>

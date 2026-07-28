@@ -11,6 +11,19 @@ interface StepProps {
 
 const languageGroups = [
   {
+    region: "Zambia",
+    languages: [
+      { name: "Bemba", country: "ZM" },
+      { name: "Nyanja", country: "ZM" },
+      { name: "Tonga", country: "ZM" },
+      { name: "Lozi", country: "ZM" },
+      { name: "Kaonde", country: "ZM" },
+      { name: "Luvale", country: "ZM" },
+      { name: "Lunda", country: "ZM" },
+      { name: "Tumbuka", country: "ZM" },
+    ],
+  },
+  {
     region: "East Africa",
     languages: [
       { name: "Swahili", country: "TZ" },
