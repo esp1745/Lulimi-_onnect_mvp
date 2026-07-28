@@ -105,6 +105,7 @@ export interface Booking {
   id: number
   teacher: number
   teacher_name: string
+  teacher_user_id: number
   teacher_whatsapp_number: string
   learner: number
   learner_name: string
@@ -118,6 +119,7 @@ export interface Booking {
   teacher_notes: string
   learner_notes: string
   created_at: string
+  reviewed?: boolean
 }
 
 export interface Resource {
@@ -169,4 +171,22 @@ export interface LearnerDashboard {
   upcoming_lessons: Booking[]
   past_lessons: Booking[]
   saved_resources: Resource[]
+}
+
+export interface Message {
+  id: number
+  sender: number
+  sender_name: string
+  recipient: number
+  text: string
+  read_at: string | null
+  created_at: string
+}
+
+export interface MessageThread {
+  user_id: number
+  full_name: string
+  last_message: string
+  last_message_at: string
+  unread_count: number
 }

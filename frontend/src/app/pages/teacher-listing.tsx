@@ -15,18 +15,6 @@ const services = ["1-on-1 Lessons", "Group Classes", "Business Language", "Cultu
 
 type SortBy = "popular" | "topRated" | "budget" | "new" | "mostExperience";
 
-function numOrNull(v: string | null): number | null {
-  return v === null ? null : parseFloat(v);
-}
-
-const sortComparators: Record<SortBy, (a: Teacher, b: Teacher) => number> = {
-  popular: (a, b) => b.follower_count - a.follower_count,
-  topRated: (a, b) => (b.rating ?? 0) - (a.rating ?? 0) || b.review_count - a.review_count,
-  budget: (a, b) => (numOrNull(a.price) ?? Infinity) - (numOrNull(b.price) ?? Infinity),
-  new: (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  mostExperience: (a, b) => (b.years_experience ?? 0) - (a.years_experience ?? 0),
-};
-
 export function TeacherListing() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,12 +26,24 @@ export function TeacherListing() {
   const [sortBy, setSortBy] = useState<SortBy>("popular");
 
   useEffect(() => {
-    api
-      .get("/api/teachers/marketplace/")
-      .then(({ data }) => setTeachers(data))
-      .catch(() => setTeachers([]))
-      .finally(() => setLoading(false));
-  }, []);
+    const handle = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      if (priceRange[0] !== 0) params.set("min_price", String(priceRange[0]));
+      if (priceRange[1] !== 100) params.set("max_price", String(priceRange[1]));
+      selectedRegions.forEach((r) => params.append("region", r));
+      selectedSpecializations.forEach((s) => params.append("specializations", s));
+      selectedServices.forEach((s) => params.append("services", s));
+      params.set("ordering", sortBy);
+      setLoading(true);
+      api
+        .get(`/api/teachers/marketplace/?${params}`)
+        .then(({ data }) => setTeachers(data))
+        .catch(() => setTeachers([]))
+        .finally(() => setLoading(false));
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [searchQuery, priceRange, selectedRegions, selectedSpecializations, selectedServices, sortBy]);
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -52,34 +52,6 @@ export function TeacherListing() {
     setSelectedSpecializations([]);
     setSelectedServices([]);
   };
-
-  const query = searchQuery.trim().toLowerCase();
-
-  const filteredTeachers = teachers
-    .filter((teacher) => {
-      const matchesSearch =
-        query === "" ||
-        teacher.full_name.toLowerCase().includes(query) ||
-        teacher.headline.toLowerCase().includes(query) ||
-        teacher.bio.toLowerCase().includes(query) ||
-        teacher.country.toLowerCase().includes(query) ||
-        teacher.languages.some((lang) => lang.language_name.toLowerCase().includes(query));
-
-      const price = numOrNull(teacher.price);
-      const matchesPrice = price === null || (price >= priceRange[0] && price <= priceRange[1]);
-
-      const matchesRegion = selectedRegions.length === 0 || selectedRegions.includes(teacher.region);
-
-      const matchesSpecialization =
-        selectedSpecializations.length === 0 ||
-        selectedSpecializations.some((spec) => teacher.specializations.includes(spec));
-
-      const matchesServices =
-        selectedServices.length === 0 || selectedServices.some((service) => teacher.services.includes(service));
-
-      return matchesSearch && matchesPrice && matchesRegion && matchesSpecialization && matchesServices;
-    })
-    .sort(sortComparators[sortBy]);
 
   return (
     <div className="min-h-screen">
@@ -279,14 +251,14 @@ export function TeacherListing() {
               </div>
 
               <div className="text-sm text-gray-500 mb-4">
-                {loading ? "Loading teachers…" : `Showing ${filteredTeachers.length} teachers`}
+                {loading ? "Loading teachers…" : `Showing ${teachers.length} teachers`}
               </div>
             </div>
 
             {/* Teacher Cards */}
-            {!loading && filteredTeachers.length > 0 ? (
+            {!loading && teachers.length > 0 ? (
               <div className="space-y-3.5">
-                {filteredTeachers.map((teacher) => (
+                {teachers.map((teacher) => (
                   <TeacherCardHorizontal key={teacher.id} teacher={teacher} />
                 ))}
               </div>

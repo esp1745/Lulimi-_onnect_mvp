@@ -1,4 +1,5 @@
 from django.db.models import Avg
+from django.utils import timezone
 from rest_framework import serializers
 from .models import Teacher, TeacherLanguage, Availability, Review, TeacherPackage
 
@@ -33,6 +34,29 @@ class ReviewSerializer(serializers.ModelSerializer):
             'id', 'learner_name', 'rating', 'knowledge_score', 'value_score',
             'responsiveness_score', 'supportiveness_score', 'text', 'tag', 'created_at',
         ]
+
+
+class ReviewCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['id', 'booking', 'rating', 'text', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def validate(self, attrs):
+        booking = attrs['booking']
+        user = self.context['request'].user
+        teacher_id = int(self.context['view'].kwargs['pk'])
+        if user.role != 'learner':
+            raise serializers.ValidationError('Only learners can leave reviews.')
+        if booking.teacher_id != teacher_id:
+            raise serializers.ValidationError('This booking is not with this teacher.')
+        if booking.learner_id != user.id:
+            raise serializers.ValidationError('You can only review your own bookings.')
+        if booking.status not in ('confirmed', 'completed') or booking.start_at >= timezone.now():
+            raise serializers.ValidationError('You can only review a lesson that has already happened.')
+        if Review.objects.filter(booking=booking).exists():
+            raise serializers.ValidationError("You've already reviewed this lesson.")
+        return attrs
 
 
 class TeacherStatsMixin(serializers.Serializer):

@@ -106,6 +106,20 @@ def send_profile_approved_email(teacher_user):
     )
 
 
+def send_new_message_email(message):
+    _send(
+        subject=f'New message from {message.sender.full_name}',
+        body=(
+            f'Hi {message.recipient.full_name},\n\n'
+            f'{message.sender.full_name} sent you a message on Lulimi Connect:\n\n'
+            f'"{message.text}"\n\n'
+            'Log in to reply.\n\n'
+            'The Lulimi Connect Team'
+        ),
+        to_email=message.recipient.email,
+    )
+
+
 def send_profile_rejected_email(teacher_user):
     _send(
         subject='Profile Approval Update',

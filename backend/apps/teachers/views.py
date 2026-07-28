@@ -3,13 +3,14 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.db.models import Avg, Count, Q, F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from .models import Teacher, TeacherLanguage, Availability, Review, TeacherPackage
 from .serializers import (
     TeacherSerializer, TeacherPublicSerializer, TeacherLanguageSerializer, AvailabilitySerializer,
-    ReviewSerializer, TeacherPackageSerializer,
+    ReviewSerializer, ReviewCreateSerializer, TeacherPackageSerializer,
 )
 from apps.bookings.models import Booking
 from apps.bookings.serializers import BookingSerializer
@@ -69,10 +70,14 @@ class MarketplaceView(generics.ListAPIView):
 
     def get_queryset(self):
         qs = Teacher.objects.filter(is_published=True, approval_status='approved')
-        language = self.request.query_params.get('language')
-        lesson_format = self.request.query_params.get('format')
-        featured = self.request.query_params.get('featured')
-        region = self.request.query_params.get('region')
+        params = self.request.query_params
+        language = params.get('language')
+        lesson_format = params.get('format')
+        featured = params.get('featured')
+        regions = params.getlist('region')
+        search = params.get('search')
+        min_price = params.get('min_price')
+        max_price = params.get('max_price')
 
         if language:
             qs = qs.filter(languages__language_name__icontains=language)
@@ -80,16 +85,49 @@ class MarketplaceView(generics.ListAPIView):
             qs = qs.filter(lesson_format__in=[lesson_format, 'both'])
         if featured:
             qs = qs.filter(is_featured=True)
-        if region:
-            qs = qs.filter(region__iexact=region)
+        if regions:
+            qs = qs.filter(region__in=regions)
+        if search:
+            qs = qs.filter(
+                Q(user__full_name__icontains=search) | Q(headline__icontains=search) |
+                Q(bio__icontains=search) | Q(user__country__icontains=search) |
+                Q(languages__language_name__icontains=search)
+            )
+        if min_price or max_price:
+            price_range = Q()
+            if min_price:
+                price_range &= Q(price__gte=min_price)
+            if max_price:
+                price_range &= Q(price__lte=max_price)
+            # A teacher with no price set is never excluded by the range.
+            qs = qs.filter(Q(price__isnull=True) | price_range)
 
-        qs = qs.distinct().order_by('-is_featured', '-id')
+        qs = qs.distinct()
+
+        ordering = params.get('ordering')
+        if ordering == 'popular':
+            qs = qs.annotate(follower_total=Count('followers', distinct=True)).order_by('-follower_total', '-is_featured', '-id')
+        elif ordering == 'topRated':
+            # Avg + Count both over the same 'reviews' relation — deliberately not combined
+            # with a followers annotation in one query, which would trigger Django's known
+            # multi-relation aggregate fan-out bug (inflated/incorrect aggregates).
+            qs = qs.annotate(avg_rating=Avg('reviews__rating'), review_total=Count('reviews', distinct=True)).order_by(
+                F('avg_rating').desc(nulls_last=True), '-review_total'
+            )
+        elif ordering == 'budget':
+            qs = qs.order_by(F('price').asc(nulls_last=True))
+        elif ordering == 'new':
+            qs = qs.order_by('-created_at')
+        elif ordering == 'mostExperience':
+            qs = qs.order_by(F('years_experience').desc(nulls_last=True))
+        else:
+            qs = qs.order_by('-is_featured', '-id')
 
         # JSONField list membership isn't consistently queryable across backends
         # (sqlite vs postgres), so specialization/service tag filters are applied
         # in Python after the DB-level filters above narrow the candidate set.
-        specializations = self.request.query_params.getlist('specializations')
-        services = self.request.query_params.getlist('services')
+        specializations = params.getlist('specializations')
+        services = params.getlist('services')
         if specializations:
             qs = [t for t in qs if any(s in t.specializations for s in specializations)]
         if services:
@@ -122,14 +160,22 @@ class TeacherLanguageDeleteView(generics.DestroyAPIView):
 
 # --- Reviews ---
 
-class TeacherReviewListView(generics.ListAPIView):
-    """Public, read-only list of a teacher's reviews. Submission isn't exposed yet."""
-    serializer_class = ReviewSerializer
-    permission_classes = [permissions.AllowAny]
+class TeacherReviewListCreateView(generics.ListCreateAPIView):
+    """Public list of a teacher's reviews; learners with a past lesson can submit one."""
+
+    def get_serializer_class(self):
+        return ReviewCreateSerializer if self.request.method == 'POST' else ReviewSerializer
+
+    def get_permissions(self):
+        return [permissions.AllowAny()] if self.request.method == 'GET' else [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         teacher = get_object_or_404(Teacher, pk=self.kwargs['pk'], is_published=True, approval_status='approved')
         return teacher.reviews.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        teacher = get_object_or_404(Teacher, pk=self.kwargs['pk'])
+        serializer.save(learner=self.request.user, teacher=teacher)
 
 
 # --- Teacher Packages ---

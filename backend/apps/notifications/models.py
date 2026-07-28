@@ -12,6 +12,7 @@ class Notification(models.Model):
         ('welcome', 'Welcome'),
         ('profile_approved', 'Profile Approved'),
         ('profile_rejected', 'Profile Rejected'),
+        ('new_message', 'New Message'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')

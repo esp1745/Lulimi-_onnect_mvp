@@ -4,13 +4,14 @@ from .models import Booking
 
 class BookingSerializer(serializers.ModelSerializer):
     teacher_name = serializers.CharField(source='teacher.user.full_name', read_only=True)
+    teacher_user_id = serializers.IntegerField(source='teacher.user_id', read_only=True)
     learner_name = serializers.CharField(source='learner.full_name', read_only=True)
     teacher_whatsapp_number = serializers.CharField(source='teacher.whatsapp_number', read_only=True)
 
     class Meta:
         model = Booking
         fields = [
-            'id', 'teacher', 'teacher_name', 'teacher_whatsapp_number', 'learner', 'learner_name',
+            'id', 'teacher', 'teacher_name', 'teacher_user_id', 'teacher_whatsapp_number', 'learner', 'learner_name',
             'language_name', 'start_at', 'end_at', 'timezone_snapshot',
             'status', 'external_meeting_link', 'learner_whatsapp_number', 'teacher_notes', 'learner_notes',
             'created_at', 'updated_at',

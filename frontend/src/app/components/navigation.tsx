@@ -1,8 +1,40 @@
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "./ui/button";
 import NotificationsDropdown from "./NotificationsDropdown";
+import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import lulimiLogo from "@/assets/lulimi-logo.png";
+import type { MessageThread } from "@/types";
+
+function MessagesBadge() {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnread = () => {
+      api
+        .get("/api/messaging/threads/")
+        .then(({ data }: { data: MessageThread[] }) => setUnreadCount(data.reduce((sum, t) => sum + t.unread_count, 0)))
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Link to="/messages" className="relative p-2 rounded-full hover:bg-[#1A3A35]/5 transition-colors" aria-label="Messages">
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#1A3A35]/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+      {unreadCount > 0 && (
+        <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-[#C4622D] text-white text-[10px] font-bold flex items-center justify-center">
+          {unreadCount > 9 ? "9+" : unreadCount}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 const navLinks = [
   { label: "Find a Teacher", to: "/teachers" },
@@ -46,6 +78,7 @@ export function Navigation() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              <MessagesBadge />
               <NotificationsDropdown />
               <Link to={dashboardPath(user.role)}>
                 <span className="text-sm font-medium text-[#1A3A35]/80 hidden sm:inline hover:text-[#1A3A35]">

@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/ai/', include('apps.ai_assistant.urls')),
     path('api/calendar/', include('apps.calendar_integration.urls')),
+    path('api/messaging/', include('apps.messaging.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

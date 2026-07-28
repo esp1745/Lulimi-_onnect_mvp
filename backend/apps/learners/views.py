@@ -8,6 +8,7 @@ from apps.bookings.models import Booking
 from apps.bookings.serializers import BookingSerializer
 from apps.resources.models import Resource
 from apps.resources.serializers import ResourceSerializer
+from apps.teachers.models import Review
 
 
 class LearnerProfileView(generics.RetrieveUpdateAPIView):
@@ -45,9 +46,16 @@ class LearnerDashboardView(APIView):
             visibility='student_shared',
         ).distinct().order_by('-created_at')[:20]
 
+        past_data = BookingSerializer(past, many=True).data
+        reviewed_ids = set(
+            Review.objects.filter(learner=user, booking_id__in=[b.id for b in past]).values_list('booking_id', flat=True)
+        )
+        for item in past_data:
+            item['reviewed'] = item['id'] in reviewed_ids
+
         return Response({
             'pending_requests': BookingSerializer(pending_requests, many=True).data,
             'upcoming_lessons': BookingSerializer(upcoming, many=True).data,
-            'past_lessons': BookingSerializer(past, many=True).data,
+            'past_lessons': past_data,
             'saved_resources': ResourceSerializer(saved_resources, many=True).data,
         })

@@ -173,6 +173,9 @@ function BookingCard({
                 Continue on WhatsApp
               </a>
             )}
+            <Link to={`/messages/${booking.learner}`} state={{ name: booking.learner_name }} className="text-xs text-gray-500 hover:underline">
+              Message
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -237,6 +240,9 @@ function NotesCard({ booking, onSaved, libraryResources }: { booking: Booking; o
           <p className="text-xs text-gray-500">
             {booking.language_name} · {new Date(booking.start_at).toLocaleString()}
           </p>
+          <Link to={`/messages/${booking.learner}`} state={{ name: booking.learner_name }} className="text-xs text-gray-500 hover:underline">
+            Message
+          </Link>
         </div>
         <Badge className="text-xs border-0 bg-blue-100 text-blue-700 shrink-0">completed</Badge>
       </div>

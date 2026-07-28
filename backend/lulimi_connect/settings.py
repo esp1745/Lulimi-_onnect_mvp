@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'apps.notifications',
     'apps.ai_assistant',
     'apps.calendar_integration',
+    'apps.messaging',
 ]
 
 MIDDLEWARE = [

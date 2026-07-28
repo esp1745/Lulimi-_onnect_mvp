@@ -9,6 +9,8 @@ import { TeacherAvailability } from "./pages/teacher-availability";
 import { TeacherResources } from "./pages/teacher-resources";
 import { LearnerDashboard } from "./pages/learner-dashboard";
 import { LearnerProfile } from "./pages/learner-profile";
+import { Messages } from "./pages/messages";
+import { MessageThread } from "./pages/message-thread";
 import { About } from "./pages/about";
 import { SignIn } from "./pages/sign-in";
 import { SignUp } from "./pages/sign-up";
@@ -55,6 +57,14 @@ export const router = createBrowserRouter([
   {
     path: "/learner/profile",
     Component: LearnerProfile,
+  },
+  {
+    path: "/messages",
+    Component: Messages,
+  },
+  {
+    path: "/messages/:userId",
+    Component: MessageThread,
   },
   {
     path: "/about",

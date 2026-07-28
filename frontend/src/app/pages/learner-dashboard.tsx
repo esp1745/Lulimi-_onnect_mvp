@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
+import { Star } from "lucide-react";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
+import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
 import api from "@/lib/api";
@@ -54,6 +56,9 @@ function BookingRow({ booking, onCancel }: { booking: Booking; onCancel?: () => 
                 Continue on WhatsApp
               </a>
             )}
+            <Link to={`/messages/${booking.teacher_user_id}`} state={{ name: booking.teacher_name }} className="text-xs text-gray-500 hover:underline">
+              Message
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -65,6 +70,72 @@ function BookingRow({ booking, onCancel }: { booking: Booking; onCancel?: () => 
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function PastLessonRow({ booking, onReviewed }: { booking: Booking; onReviewed: () => void }) {
+  const [reviewing, setReviewing] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [text, setText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const canReview = ["confirmed", "completed"].includes(booking.status) && !booking.reviewed;
+
+  const handleSubmit = async () => {
+    if (!rating) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/api/teachers/${booking.teacher}/reviews/`, { booking: booking.id, rating, text });
+      toast.success("Review submitted.");
+      setReviewing(false);
+      onReviewed();
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { non_field_errors?: string[] } } })?.response?.data?.non_field_errors?.[0];
+      toast.error(detail || "Could not submit review.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="py-3 border-b last:border-0">
+      <p className="font-medium text-sm text-[#1A3A35]">{booking.teacher_name}</p>
+      <p className="text-xs text-gray-500">
+        {booking.language_name} · {new Date(booking.start_at).toLocaleString()}
+      </p>
+      <div className="flex items-center gap-3 mt-1">
+        <Badge className={`text-xs border-0 ${STATUS_COLORS[booking.status]}`}>{booking.status}</Badge>
+        {booking.reviewed && <span className="text-xs text-gray-400">✓ Reviewed</span>}
+        <Link to={`/messages/${booking.teacher_user_id}`} state={{ name: booking.teacher_name }} className="text-xs text-gray-500 hover:underline">
+          Message
+        </Link>
+        {canReview && !reviewing && (
+          <button type="button" className="text-xs text-[#2D5A45] hover:underline" onClick={() => setReviewing(true)}>
+            Leave a review
+          </button>
+        )}
+      </div>
+      {reviewing && (
+        <div className="mt-2 space-y-2 rounded-lg bg-[#F5F0E8] p-3">
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} type="button" onClick={() => setRating(n)}>
+                <Star className={`w-5 h-5 ${n <= rating ? "fill-[#F5C42C] text-[#F5C42C]" : "text-gray-300"}`} />
+              </button>
+            ))}
+          </div>
+          <Textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="How was the lesson? (optional)" rows={2} className="text-xs" />
+          <div className="flex gap-2">
+            <Button size="sm" className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white h-7 text-xs" onClick={handleSubmit} disabled={submitting || !rating}>
+              {submitting ? "Submitting…" : "Submit review"}
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setReviewing(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -126,6 +197,10 @@ export function LearnerDashboard() {
     } catch {
       toast.error("Could not cancel booking.");
     }
+  };
+
+  const markReviewed = (bookingId: number) => {
+    setDashboard((d) => d && { ...d, past_lessons: d.past_lessons.map((b) => (b.id === bookingId ? { ...b, reviewed: true } : b)) });
   };
 
   if (authLoading || loading) {
@@ -197,15 +272,7 @@ export function LearnerDashboard() {
               {dashboard?.past_lessons.length === 0 ? (
                 <p className="text-sm text-gray-400">No past lessons yet.</p>
               ) : (
-                dashboard?.past_lessons.map((b) => (
-                  <div key={b.id} className="py-3 border-b last:border-0">
-                    <p className="font-medium text-sm text-[#1A3A35]">{b.teacher_name}</p>
-                    <p className="text-xs text-gray-500">
-                      {b.language_name} · {new Date(b.start_at).toLocaleString()}
-                    </p>
-                    <Badge className={`text-xs border-0 mt-1 ${STATUS_COLORS[b.status]}`}>{b.status}</Badge>
-                  </div>
-                ))
+                dashboard?.past_lessons.map((b) => <PastLessonRow key={b.id} booking={b} onReviewed={() => markReviewed(b.id)} />)
               )}
             </CardContent>
           </Card>
