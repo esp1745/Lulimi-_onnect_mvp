@@ -64,15 +64,17 @@ export function Navigation() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              to={link.to}
-              className="text-sm font-medium text-[#1A3A35]/80 hover:text-[#1A3A35] transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks
+            .filter((link) => !(user && link.label === "For Teachers"))
+            .map((link) => (
+              <Link
+                key={link.label}
+                to={link.to}
+                className="text-sm font-medium text-[#1A3A35]/80 hover:text-[#1A3A35] transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
         </nav>
 
         <div className="flex items-center gap-3">
