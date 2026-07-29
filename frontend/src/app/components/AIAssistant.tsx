@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Badge } from "./ui/badge";
+import BookingsChatPanel from "./BookingsChatPanel";
 import api from "@/lib/api";
 
 const ZAMBIAN_LANGUAGES = ["Bemba", "Nyanja", "Tonga", "Lozi", "Kaonde", "Luvale", "Lunda", "Tumbuka", "Other"];
@@ -25,6 +26,7 @@ interface Props {
 
 export default function AIAssistant({ role = "teacher", onSaveAsResource }: Props) {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"generate" | "bookings">("generate");
   const [selected, setSelected] = useState<(typeof QUICK_PROMPTS)[0] | null>(null);
   const [language, setLanguage] = useState("Bemba");
   const [level, setLevel] = useState("beginner");
@@ -79,7 +81,7 @@ export default function AIAssistant({ role = "teacher", onSaveAsResource }: Prop
         <div className="w-[360px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-purple-100 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white shrink-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm">AI Teaching Assistant</span>
+              <span className="font-semibold text-sm">{role === "learner" ? "AI Learning Assistant" : "AI Teaching Assistant"}</span>
               <Badge className="bg-white/20 text-white border-0 text-xs">Beta</Badge>
             </div>
             <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white text-lg leading-none">
@@ -87,6 +89,28 @@ export default function AIAssistant({ role = "teacher", onSaveAsResource }: Prop
             </button>
           </div>
 
+          {role === "learner" && (
+            <div className="flex border-b border-gray-100 shrink-0">
+              <button
+                onClick={() => setMode("generate")}
+                className={`flex-1 text-xs font-medium py-2 transition-colors ${mode === "generate" ? "text-purple-700 border-b-2 border-purple-600" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                Practice
+              </button>
+              <button
+                onClick={() => setMode("bookings")}
+                className={`flex-1 text-xs font-medium py-2 transition-colors ${mode === "bookings" ? "text-purple-700 border-b-2 border-purple-600" : "text-gray-400 hover:text-gray-600"}`}
+              >
+                Manage bookings
+              </button>
+            </div>
+          )}
+
+          {mode === "bookings" && role === "learner" ? (
+            <div className="p-4 flex-1 overflow-hidden">
+              <BookingsChatPanel />
+            </div>
+          ) : (
           <div className="overflow-y-auto flex-1 p-4 space-y-4">
             <div>
               <p className="text-xs text-gray-500 mb-2 font-medium">Quick actions</p>
@@ -182,10 +206,13 @@ export default function AIAssistant({ role = "teacher", onSaveAsResource }: Prop
                   </div>
                 </div>
                 <Textarea value={edited} onChange={(e) => setEdited(e.target.value)} rows={8} className="text-xs font-mono resize-none" />
-                <p className="text-xs text-gray-400">⚠️ Review before sharing with students.</p>
+                <p className="text-xs text-gray-400">
+                  {role === "learner" ? "⚠️ AI-generated — double-check tricky bits with your teacher." : "⚠️ Review before sharing with students."}
+                </p>
               </div>
             )}
           </div>
+          )}
         </div>
       )}
 

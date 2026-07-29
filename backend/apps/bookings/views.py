@@ -1,10 +1,10 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from .models import Booking
 from .serializers import BookingSerializer, BookingStatusSerializer
+from . import services
 from apps.teachers.models import Teacher
 from apps.notifications.models import Notification
 from apps.notifications import email as notify_email
@@ -27,26 +27,17 @@ class BookingCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        teacher = serializer.validated_data['teacher']
-        start_at = serializer.validated_data['start_at']
-        end_at = serializer.validated_data['end_at']
-        overlap_exists = Booking.objects.filter(
-            teacher=teacher,
-            status__in=['pending', 'confirmed'],
-            start_at__lt=end_at,
-            end_at__gt=start_at,
-        ).exists()
-        if overlap_exists:
-            raise ValidationError({'detail': 'This teacher already has a booking during that time.'})
-
-        booking = serializer.save(learner=self.request.user)
-        teacher_user = booking.teacher.user
-        _create_notification(
-            teacher_user, 'booking_request',
-            'New Booking Request',
-            f'{booking.learner.full_name} has requested a lesson on {booking.start_at.strftime("%d %b %Y at %H:%M UTC")}.',
+        data = serializer.validated_data
+        booking = services.create_booking_request(
+            learner=self.request.user,
+            teacher=data['teacher'],
+            language_name=data['language_name'],
+            start_at=data['start_at'],
+            end_at=data['end_at'],
+            timezone_snapshot=data.get('timezone_snapshot', ''),
+            learner_whatsapp_number=data.get('learner_whatsapp_number', ''),
         )
-        notify_email.send_booking_request_email(booking)
+        serializer.instance = booking
 
 
 class LearnerBookingListView(generics.ListAPIView):
@@ -170,41 +161,10 @@ class BookingCancelView(APIView):
             booking = get_object_or_404(Booking, pk=pk, learner=user)
             cancelled_by = 'learner'
 
-        if booking.status not in ['pending', 'confirmed']:
-            return Response({'detail': 'Cannot cancel this booking.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if booking.google_event_id:
-            account = GoogleCalendarAccount.objects.filter(user=booking.teacher.user).first()
-            if account:
-                try:
-                    google_client.delete_event(account, booking.google_event_id)
-                except Exception:
-                    pass
-
-        if booking.learner_google_event_id:
-            account = GoogleCalendarAccount.objects.filter(user=booking.learner).first()
-            if account:
-                try:
-                    google_client.delete_event(account, booking.learner_google_event_id)
-                except Exception:
-                    pass
-
-        booking.status = 'cancelled'
-        booking.save()
-
-        if cancelled_by == 'teacher':
-            _create_notification(
-                booking.learner, 'booking_cancelled',
-                'Booking Cancelled',
-                f'Your lesson with {booking.teacher.user.full_name} on {booking.start_at.strftime("%d %b %Y at %H:%M UTC")} has been cancelled.',
-            )
-        else:
-            _create_notification(
-                booking.teacher.user, 'booking_cancelled',
-                'Booking Cancelled',
-                f'{booking.learner.full_name} cancelled their lesson on {booking.start_at.strftime("%d %b %Y at %H:%M UTC")}.',
-            )
-        notify_email.send_booking_cancelled_email(booking, cancelled_by)
+        try:
+            services.cancel_booking(booking, cancelled_by)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(BookingSerializer(booking).data)
 

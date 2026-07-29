@@ -46,13 +46,13 @@ class ResourceDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class LearnerResourceListView(generics.ListAPIView):
-    """Learner views resources shared with them via bookings."""
+    """Learner views resources shared by teachers they have a booking with."""
     serializer_class = ResourceSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Resource.objects.filter(
-            lesson_attachments__booking__learner=self.request.user,
+            teacher__bookings__learner=self.request.user,
             visibility='student_shared',
         ).distinct()
 

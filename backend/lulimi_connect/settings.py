@@ -69,8 +69,13 @@ WSGI_APPLICATION = 'lulimi_connect.wsgi.application'
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
+    # Short-lived connections: Supabase's session-mode pooler on this project caps
+    # concurrent clients at 15. A long conn_max_age lets connections pile up across
+    # the dev server's per-request threads (and any concurrent polling components)
+    # faster than they're released, exhausting the pool. 60s still gives some reuse
+    # benefit without holding pooler slots open nearly as long as the old 600s did.
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=60)
     }
 else:
     DATABASES = {

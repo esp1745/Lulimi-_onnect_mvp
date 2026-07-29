@@ -190,3 +190,31 @@ export interface MessageThread {
   last_message_at: string
   unread_count: number
 }
+
+export interface AIChatContentBlock {
+  type: "text" | "tool_use" | "tool_result"
+  text?: string
+  id?: string
+  name?: string
+  input?: Record<string, unknown>
+  tool_use_id?: string
+  content?: string
+}
+
+export interface AIChatMessage {
+  role: "user" | "assistant"
+  content: string | AIChatContentBlock[]
+}
+
+export interface AIChatConfirmation {
+  tool_use_id: string
+  tool_name: string
+  tool_input: Record<string, unknown>
+  summary: string
+}
+
+export interface AIChatResponse {
+  status: "ok" | "confirm_required"
+  messages: AIChatMessage[]
+  confirmation?: AIChatConfirmation
+}

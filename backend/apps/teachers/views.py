@@ -15,8 +15,7 @@ from .serializers import (
 from apps.bookings.models import Booking
 from apps.bookings.serializers import BookingSerializer
 from apps.accounts.models import User
-from apps.calendar_integration.models import GoogleCalendarAccount
-from apps.calendar_integration import google_client
+from . import services as teacher_services
 
 
 class IsTeacher(permissions.BasePermission):
@@ -282,28 +281,7 @@ class TeacherAvailabilityCheckView(APIView):
         if not start_at or not end_at:
             return Response({'detail': 'start and end query params (ISO 8601) are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        overlap_exists = Booking.objects.filter(
-            teacher=teacher,
-            status__in=['pending', 'confirmed'],
-            start_at__lt=end_at,
-            end_at__gt=start_at,
-        ).exists()
-        if overlap_exists:
-            return Response({'available': False})
-
-        account = GoogleCalendarAccount.objects.filter(user=teacher.user).first()
-        if account:
-            try:
-                busy_intervals = google_client.get_busy_intervals(account, start_at, end_at)
-                for busy in busy_intervals:
-                    busy_start = parse_datetime(busy['start'])
-                    busy_end = parse_datetime(busy['end'])
-                    if busy_start < end_at and busy_end > start_at:
-                        return Response({'available': False})
-            except Exception:
-                pass
-
-        return Response({'available': True})
+        return Response({'available': teacher_services.is_teacher_available(teacher, start_at, end_at)})
 
 
 class TeacherDashboardView(APIView):

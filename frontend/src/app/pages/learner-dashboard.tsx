@@ -9,6 +9,7 @@ import { Badge } from "../components/ui/badge";
 import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
+import AIAssistant from "../components/AIAssistant";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import { buildGoogleCalendarUrl } from "@/lib/googleCalendar";
@@ -299,6 +300,8 @@ export function LearnerDashboard() {
         </div>
       </div>
       <Footer />
+
+      <AIAssistant role="learner" />
     </div>
   );
 }

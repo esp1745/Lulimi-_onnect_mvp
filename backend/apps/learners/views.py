@@ -42,7 +42,7 @@ class LearnerDashboardView(APIView):
         ).exclude(status='cancelled').order_by('-start_at')[:10]
 
         saved_resources = Resource.objects.filter(
-            lesson_attachments__booking__learner=user,
+            teacher__bookings__learner=user,
             visibility='student_shared',
         ).distinct().order_by('-created_at')[:20]
 
