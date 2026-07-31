@@ -1,6 +1,7 @@
 """Booking mutations shared between the REST views and the AI booking tools,
 so both go through the exact same validation, notifications, and Calendar sync."""
 
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from .models import Booking
 from apps.notifications.models import Notification
@@ -19,7 +20,14 @@ def _create_notification(user, notification_type, title, body):
 
 
 def create_booking_request(learner, teacher, language_name, start_at, end_at, timezone_snapshot, learner_whatsapp_number=''):
-    """Creates a pending booking request. Raises ValidationError on a time conflict."""
+    """Creates a pending booking request. Raises ValidationError on bad times or a conflict."""
+    if start_at >= end_at:
+        raise ValidationError({'detail': 'start_at must be before end_at.'})
+    if start_at < timezone.now():
+        raise ValidationError({'detail': 'Cannot request a booking in the past.'})
+    if not language_name or len(language_name) > 100:
+        raise ValidationError({'detail': 'language_name is required and must be at most 100 characters.'})
+
     overlap_exists = Booking.objects.filter(
         teacher=teacher,
         status__in=['pending', 'confirmed'],

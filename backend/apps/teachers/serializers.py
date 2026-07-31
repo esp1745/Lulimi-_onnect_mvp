@@ -17,12 +17,39 @@ class AvailabilitySerializer(serializers.ModelSerializer):
         model = Availability
         fields = ['id', 'day_of_week', 'day_name', 'start_time', 'end_time', 'timezone', 'is_active']
 
+    def validate(self, attrs):
+        start_time = attrs.get('start_time', getattr(self.instance, 'start_time', None))
+        end_time = attrs.get('end_time', getattr(self.instance, 'end_time', None))
+        if start_time is not None and end_time is not None and start_time >= end_time:
+            raise serializers.ValidationError({'detail': 'start_time must be before end_time.'})
+        return attrs
+
 
 class TeacherPackageSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeacherPackage
         fields = ['id', 'title', 'description', 'hours', 'price', 'savings', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def validate_hours(self, value):
+        if value < 1:
+            raise serializers.ValidationError('hours must be at least 1.')
+        return value
+
+    def validate_price(self, value):
+        if value < 0:
+            raise serializers.ValidationError('price cannot be negative.')
+        return value
+
+    def validate(self, attrs):
+        price = attrs.get('price', getattr(self.instance, 'price', None))
+        savings = attrs.get('savings', getattr(self.instance, 'savings', None))
+        if savings is not None:
+            if savings < 0:
+                raise serializers.ValidationError({'savings': 'savings cannot be negative.'})
+            if price is not None and savings > price:
+                raise serializers.ValidationError({'savings': 'savings cannot exceed the package price.'})
+        return attrs
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -41,6 +68,11 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'booking', 'rating', 'text', 'created_at']
         read_only_fields = ['id', 'created_at']
+
+    def validate_text(self, value):
+        if len(value) > 2000:
+            raise serializers.ValidationError('Review text must be at most 2000 characters.')
+        return value
 
     def validate(self, attrs):
         booking = attrs['booking']

@@ -1,6 +1,7 @@
 import os
 import uuid
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -16,6 +17,8 @@ ALLOWED_TYPES = {
     'pdf': ['.pdf'],
     'image': ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
 }
+
+MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20MB
 
 
 class IsTeacher(permissions.BasePermission):
@@ -85,6 +88,9 @@ class LessonResourceListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         booking_id = self.kwargs['booking_id']
         booking = get_object_or_404(Booking, pk=booking_id, teacher__user=self.request.user)
+        resource = serializer.validated_data.get('resource')
+        if LessonResource.objects.filter(booking=booking, resource=resource).exists():
+            raise ValidationError({'detail': 'This resource is already attached to this lesson.'})
         serializer.save(booking=booking)
 
 
@@ -117,6 +123,12 @@ class FileUploadView(APIView):
             allowed = ', '.join(e for exts in ALLOWED_TYPES.values() for e in exts)
             return Response(
                 {'detail': f'Unsupported file type. Allowed: {allowed}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if file.size > MAX_UPLOAD_SIZE:
+            return Response(
+                {'detail': f'File too large. Max size is {MAX_UPLOAD_SIZE // (1024 * 1024)}MB.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

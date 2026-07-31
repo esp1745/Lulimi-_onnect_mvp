@@ -11,6 +11,17 @@ class ResourceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'teacher', 'created_at']
 
+    def validate(self, attrs):
+        resource_type = attrs.get('resource_type', getattr(self.instance, 'resource_type', None))
+        file_url = attrs.get('file_url', getattr(self.instance, 'file_url', ''))
+        content_text = attrs.get('content_text', getattr(self.instance, 'content_text', ''))
+
+        if resource_type in ('pdf', 'audio', 'image', 'link') and not file_url:
+            raise serializers.ValidationError({'file_url': f'A file or link URL is required for a {resource_type} resource.'})
+        if resource_type == 'text' and not content_text:
+            raise serializers.ValidationError({'content_text': 'Text content is required for a text resource.'})
+        return attrs
+
 
 class LessonResourceSerializer(serializers.ModelSerializer):
     resource = ResourceSerializer(read_only=True)

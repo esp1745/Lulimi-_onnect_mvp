@@ -9,6 +9,7 @@ confirmation before calling `execute_write_tool`.
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from rest_framework.exceptions import ValidationError
 from apps.bookings.models import Booking
 from apps.bookings import services as booking_services
 from apps.teachers.models import Teacher
@@ -74,6 +75,31 @@ TOOL_SCHEMAS = [
 ]
 
 
+def _as_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_datetime(value):
+    if not isinstance(value, str):
+        return None
+    return parse_datetime(value)
+
+
+def _error_message(exc):
+    """Extracts a clean, single-string message from a DRF ValidationError (or any exception)."""
+    if isinstance(exc, ValidationError):
+        detail = exc.detail
+        if isinstance(detail, dict):
+            detail = next(iter(detail.values()))
+        if isinstance(detail, list):
+            detail = detail[0]
+        return str(detail)
+    return str(exc)
+
+
 def _booking_summary(b):
     return {
         'id': b.id,
@@ -93,6 +119,8 @@ def list_my_bookings(user, tool_input):
 
 def search_teachers(user, tool_input):
     query = tool_input.get('query', '')
+    if not isinstance(query, str):
+        query = ''
     qs = Teacher.objects.filter(is_published=True, approval_status='approved')
     if query:
         qs = qs.filter(
@@ -112,11 +140,14 @@ def search_teachers(user, tool_input):
 
 
 def check_teacher_availability(user, tool_input):
-    teacher = Teacher.objects.filter(pk=tool_input['teacher_id'], is_published=True, approval_status='approved').first()
+    teacher_id = _as_int(tool_input.get('teacher_id'))
+    if teacher_id is None:
+        return {'error': 'teacher_id must be an integer.'}
+    teacher = Teacher.objects.filter(pk=teacher_id, is_published=True, approval_status='approved').first()
     if not teacher:
         return {'error': 'Teacher not found.'}
-    start_at = parse_datetime(tool_input['start_at'])
-    end_at = parse_datetime(tool_input['end_at'])
+    start_at = _as_datetime(tool_input.get('start_at'))
+    end_at = _as_datetime(tool_input.get('end_at'))
     if not start_at or not end_at:
         return {'error': 'start_at/end_at must be valid ISO 8601 datetimes.'}
     return {'available': teacher_services.is_teacher_available(teacher, start_at, end_at)}
@@ -125,11 +156,13 @@ def check_teacher_availability(user, tool_input):
 def describe_write_tool(tool_name, tool_input):
     """Builds the human-readable confirmation summary shown in the UI before a write tool runs."""
     if tool_name == 'request_booking':
-        teacher = Teacher.objects.filter(pk=tool_input.get('teacher_id')).first()
+        teacher_id = _as_int(tool_input.get('teacher_id'))
+        teacher = Teacher.objects.filter(pk=teacher_id).first() if teacher_id is not None else None
         teacher_name = teacher.user.full_name if teacher else f"teacher #{tool_input.get('teacher_id')}"
         return f"Request a {tool_input.get('language_name')} lesson with {teacher_name} from {tool_input.get('start_at')} to {tool_input.get('end_at')}?"
     if tool_name == 'cancel_booking':
-        booking = Booking.objects.filter(pk=tool_input.get('booking_id')).first()
+        booking_id = _as_int(tool_input.get('booking_id'))
+        booking = Booking.objects.filter(pk=booking_id).first() if booking_id is not None else None
         if booking:
             return f"Cancel your {booking.language_name} lesson with {booking.teacher.user.full_name} on {booking.start_at.strftime('%d %b %Y at %H:%M UTC')}?"
         return f"Cancel booking #{tool_input.get('booking_id')}?"
@@ -139,30 +172,39 @@ def describe_write_tool(tool_name, tool_input):
 def execute_write_tool(user, tool_name, tool_input):
     """Only called after the frontend confirms. Returns a JSON-serializable tool result."""
     if tool_name == 'request_booking':
-        teacher = Teacher.objects.filter(pk=tool_input['teacher_id'], is_published=True, approval_status='approved').first()
+        teacher_id = _as_int(tool_input.get('teacher_id'))
+        if teacher_id is None:
+            return {'error': 'teacher_id must be an integer.'}
+        language_name = tool_input.get('language_name')
+        if not isinstance(language_name, str) or not language_name.strip():
+            return {'error': 'language_name is required.'}
+        teacher = Teacher.objects.filter(pk=teacher_id, is_published=True, approval_status='approved').first()
         if not teacher:
             return {'error': 'Teacher not found.'}
-        start_at = parse_datetime(tool_input['start_at'])
-        end_at = parse_datetime(tool_input['end_at'])
+        start_at = _as_datetime(tool_input.get('start_at'))
+        end_at = _as_datetime(tool_input.get('end_at'))
         if not start_at or not end_at:
             return {'error': 'start_at/end_at must be valid ISO 8601 datetimes.'}
         try:
             booking = booking_services.create_booking_request(
-                learner=user, teacher=teacher, language_name=tool_input['language_name'],
+                learner=user, teacher=teacher, language_name=language_name,
                 start_at=start_at, end_at=end_at, timezone_snapshot=user.timezone or 'UTC',
             )
         except Exception as e:
-            return {'error': str(e)}
+            return {'error': _error_message(e)}
         return {'booking': _booking_summary(booking)}
 
     if tool_name == 'cancel_booking':
-        booking = Booking.objects.filter(pk=tool_input['booking_id'], learner=user).first()
+        booking_id = _as_int(tool_input.get('booking_id'))
+        if booking_id is None:
+            return {'error': 'booking_id must be an integer.'}
+        booking = Booking.objects.filter(pk=booking_id, learner=user).first()
         if not booking:
             return {'error': 'Booking not found.'}
         try:
             booking_services.cancel_booking(booking, cancelled_by='learner')
-        except ValueError as e:
-            return {'error': str(e)}
+        except Exception as e:
+            return {'error': _error_message(e)}
         return {'booking': _booking_summary(booking)}
 
     return {'error': f'Unknown write tool: {tool_name}'}

@@ -159,6 +159,9 @@ class PasswordResetConfirmView(APIView):
         if not all([uid, token, new_password]):
             return Response({'detail': 'uid, token, and new_password are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if len(new_password) < 8:
+            return Response({'detail': 'Password must be at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             user_id = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=user_id)

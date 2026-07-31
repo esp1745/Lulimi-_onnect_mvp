@@ -1,6 +1,7 @@
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import Avg, Count, Q, F
@@ -146,6 +147,9 @@ class TeacherLanguageListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         teacher, _ = Teacher.objects.get_or_create(user=self.request.user)
+        language_name = serializer.validated_data.get('language_name', '')
+        if TeacherLanguage.objects.filter(teacher=teacher, language_name=language_name).exists():
+            raise ValidationError({'detail': 'You already added this language.'})
         serializer.save(teacher=teacher)
 
 
