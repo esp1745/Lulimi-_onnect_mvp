@@ -76,6 +76,7 @@ export interface Teacher {
   rating: number | null
   review_count: number
   follower_count: number
+  is_following: boolean
   minutes_coached: number
   score_breakdown: ScoreBreakdown | null
   packages: TeacherPackage[]

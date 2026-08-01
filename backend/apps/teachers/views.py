@@ -8,7 +8,7 @@ from django.db.models import Avg, Count, Q, F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from .models import Teacher, TeacherLanguage, Availability, Review, TeacherPackage
+from .models import Teacher, TeacherLanguage, Availability, Review, TeacherPackage, Follow
 from .serializers import (
     TeacherSerializer, TeacherPublicSerializer, TeacherLanguageSerializer, AvailabilitySerializer,
     ReviewSerializer, ReviewCreateSerializer, TeacherPackageSerializer,
@@ -179,6 +179,24 @@ class TeacherReviewListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         teacher = get_object_or_404(Teacher, pk=self.kwargs['pk'])
         serializer.save(learner=self.request.user, teacher=teacher)
+
+
+class FollowToggleView(APIView):
+    """Learner follows/unfollows a teacher. Calling it again undoes the previous state."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        if request.user.role != 'learner':
+            return Response({'detail': 'Only learners can follow teachers.'}, status=status.HTTP_403_FORBIDDEN)
+        teacher = get_object_or_404(Teacher, pk=pk, is_published=True, approval_status='approved')
+        follow = Follow.objects.filter(learner=request.user, teacher=teacher).first()
+        if follow:
+            follow.delete()
+            following = False
+        else:
+            Follow.objects.create(learner=request.user, teacher=teacher)
+            following = True
+        return Response({'following': following, 'follower_count': teacher.followers.count()})
 
 
 # --- Teacher Packages ---

@@ -87,6 +87,23 @@ export function TeacherProfile() {
     }
   };
 
+  const handleFollowToggle = async () => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+    if (user.role !== "learner") {
+      toast.error("Only learners can follow teachers.");
+      return;
+    }
+    try {
+      const { data } = await api.post(`/api/teachers/${id}/follow/`, {});
+      setTeacher((t) => t && { ...t, is_following: data.following, follower_count: data.follower_count });
+    } catch {
+      toast.error("Could not update follow status.");
+    }
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>;
   }
@@ -123,11 +140,15 @@ export function TeacherProfile() {
               )}
               <Button
                 variant="outline"
-                className="rounded-full border-[#C4622D] text-[#C4622D] hover:bg-[#C4622D] hover:text-white"
-                onClick={() => toast.info("Following teachers is coming soon.")}
+                className={
+                  teacher.is_following
+                    ? "rounded-full border-[#1A3A35] text-[#1A3A35] bg-[#1A3A35]/5 hover:bg-[#1A3A35]/10"
+                    : "rounded-full border-[#C4622D] text-[#C4622D] hover:bg-[#C4622D] hover:text-white"
+                }
+                onClick={handleFollowToggle}
               >
-                <Heart className="w-4 h-4 mr-2" />
-                Follow
+                <Heart className={`w-4 h-4 mr-2 ${teacher.is_following ? "fill-[#1A3A35]" : ""}`} />
+                {teacher.is_following ? "Following" : "Follow"}
               </Button>
             </div>
 

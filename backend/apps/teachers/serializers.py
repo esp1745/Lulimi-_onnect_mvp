@@ -97,6 +97,7 @@ class TeacherStatsMixin(serializers.Serializer):
     rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
     follower_count = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
     minutes_coached = serializers.SerializerMethodField()
     score_breakdown = serializers.SerializerMethodField()
     packages = TeacherPackageSerializer(many=True, read_only=True)
@@ -110,6 +111,12 @@ class TeacherStatsMixin(serializers.Serializer):
 
     def get_follower_count(self, obj):
         return obj.followers.count()
+
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        return obj.followers.filter(learner=request.user).exists()
 
     def get_minutes_coached(self, obj):
         completed = obj.bookings.filter(status='completed')
@@ -165,6 +172,6 @@ class TeacherPublicSerializer(TeacherStatsMixin, serializers.ModelSerializer):
             'profile_photo_url', 'intro_audio_url', 'whatsapp_number', 'region',
             'institution', 'professional_role', 'education', 'specializations',
             'services', 'badge', 'is_featured', 'languages', 'availability', 'rating',
-            'review_count', 'follower_count', 'minutes_coached', 'score_breakdown',
+            'review_count', 'follower_count', 'is_following', 'minutes_coached', 'score_breakdown',
             'packages', 'created_at',
         ]

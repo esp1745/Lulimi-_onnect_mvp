@@ -4,6 +4,7 @@ from .views import (
     MarketplaceView,
     TeacherLanguageListCreateView, TeacherLanguageDeleteView,
     TeacherReviewListCreateView,
+    FollowToggleView,
     TeacherPackageListCreateView, TeacherPackageDeleteView,
     AvailabilityListCreateView, AvailabilityDetailView,
     TeacherAvailabilityPublicView,
@@ -18,6 +19,7 @@ urlpatterns = [
     path('profile/publish/', PublishTeacherProfileView.as_view(), name='teacher-publish'),
     path('<int:pk>/public/', TeacherPublicProfileView.as_view(), name='teacher-public-profile'),
     path('<int:pk>/reviews/', TeacherReviewListCreateView.as_view(), name='teacher-reviews'),
+    path('<int:pk>/follow/', FollowToggleView.as_view(), name='teacher-follow'),
 
     # Marketplace
     path('marketplace/', MarketplaceView.as_view(), name='marketplace'),
