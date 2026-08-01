@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -10,14 +10,12 @@ import api from "@/lib/api";
 const ZAMBIAN_LANGUAGES = ["Bemba", "Nyanja", "Tonga", "Lozi", "Kaonde", "Luvale", "Lunda", "Tumbuka", "Other"];
 const LEVELS = ["beginner", "intermediate", "advanced"];
 
-const QUICK_PROMPTS = [
-  { prompt_type: "lesson_ideas", label: "Lesson ideas", needs_topic: true },
-  { prompt_type: "vocabulary", label: "Vocabulary list", needs_topic: true },
-  { prompt_type: "pronunciation", label: "Pronunciation prompts", needs_topic: false },
-  { prompt_type: "quiz", label: "Quiz / test", needs_topic: true },
-  { prompt_type: "homework", label: "Homework", needs_topic: true },
-  { prompt_type: "phrase_practice", label: "Phrase practice", needs_topic: true },
-];
+interface PromptType {
+  key: string;
+  label: string;
+  description: string;
+  needs_topic: boolean;
+}
 
 interface Props {
   role?: "teacher" | "learner";
@@ -27,7 +25,8 @@ interface Props {
 export default function AIAssistant({ role = "teacher", onSaveAsResource }: Props) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"generate" | "bookings">("generate");
-  const [selected, setSelected] = useState<(typeof QUICK_PROMPTS)[0] | null>(null);
+  const [promptTypes, setPromptTypes] = useState<PromptType[]>([]);
+  const [selected, setSelected] = useState<PromptType | null>(null);
   const [language, setLanguage] = useState("Bemba");
   const [level, setLevel] = useState("beginner");
   const [topic, setTopic] = useState("");
@@ -35,6 +34,13 @@ export default function AIAssistant({ role = "teacher", onSaveAsResource }: Prop
   const [result, setResult] = useState("");
   const [edited, setEdited] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    api
+      .get("/api/ai/prompt-types/")
+      .then((r) => setPromptTypes(r.data))
+      .catch(() => {});
+  }, []);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -45,7 +51,7 @@ export default function AIAssistant({ role = "teacher", onSaveAsResource }: Prop
       if (customPrompt) {
         payload.custom_prompt = customPrompt;
       } else if (selected) {
-        payload.prompt_type = selected.prompt_type;
+        payload.prompt_type = selected.key;
         if (selected.needs_topic) payload.topic = topic;
       } else {
         toast.error("Select a prompt type or enter a custom prompt.");
@@ -115,15 +121,15 @@ export default function AIAssistant({ role = "teacher", onSaveAsResource }: Prop
             <div>
               <p className="text-xs text-gray-500 mb-2 font-medium">Quick actions</p>
               <div className="flex flex-wrap gap-1.5">
-                {QUICK_PROMPTS.filter((p) => (role === "learner" ? ["phrase_practice", "vocabulary"].includes(p.prompt_type) : true)).map((p) => (
+                {promptTypes.filter((p) => (role === "learner" ? ["phrase_practice", "vocabulary"].includes(p.key) : true)).map((p) => (
                   <button
-                    key={p.prompt_type}
+                    key={p.key}
                     onClick={() => {
                       setSelected(p);
                       setCustomPrompt("");
                     }}
                     className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                      selected?.prompt_type === p.prompt_type
+                      selected?.key === p.key
                         ? "bg-purple-600 text-white border-purple-600"
                         : "bg-white text-gray-600 border-gray-200 hover:border-purple-300 hover:text-purple-700"
                     }`}
