@@ -368,6 +368,11 @@ export function TeacherDashboard() {
                 Resources
               </Button>
             </Link>
+            <Link to="/bookings">
+              <Button variant="outline" size="sm">
+                Booking history
+              </Button>
+            </Link>
           </div>
         </div>
 

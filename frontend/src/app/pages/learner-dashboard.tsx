@@ -225,6 +225,11 @@ export function LearnerDashboard() {
                 Edit profile
               </Button>
             </Link>
+            <Link to="/bookings">
+              <Button variant="outline" size="sm">
+                Booking history
+              </Button>
+            </Link>
             <Link to="/teachers">
               <Button className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full" size="sm">
                 Find a teacher
