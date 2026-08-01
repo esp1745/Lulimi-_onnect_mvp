@@ -1,5 +1,7 @@
+import mimetypes
 import os
 import uuid
+import requests
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -102,6 +104,29 @@ class LessonResourceDeleteView(generics.DestroyAPIView):
         return LessonResource.objects.filter(booking__teacher__user=self.request.user)
 
 
+def _upload_to_supabase(file, storage_path):
+    """Uploads to Supabase Storage; returns the public URL, or None if not configured or the upload failed
+    (caller falls back to local disk)."""
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_KEY:
+        return None
+    content_type = mimetypes.guess_type(file.name)[0] or 'application/octet-stream'
+    upload_url = f'{settings.SUPABASE_URL}/storage/v1/object/{settings.SUPABASE_STORAGE_BUCKET}/{storage_path}'
+    try:
+        response = requests.post(
+            upload_url,
+            headers={
+                'Authorization': f'Bearer {settings.SUPABASE_SERVICE_KEY}',
+                'Content-Type': content_type,
+            },
+            data=file,
+            timeout=30,
+        )
+        response.raise_for_status()
+    except requests.RequestException:
+        return None
+    return f'{settings.SUPABASE_URL}/storage/v1/object/public/{settings.SUPABASE_STORAGE_BUCKET}/{storage_path}'
+
+
 class FileUploadView(APIView):
     """Upload a file (audio, PDF, or image) and receive a URL for use in a resource."""
     permission_classes = [permissions.IsAuthenticated, IsTeacher]
@@ -133,15 +158,19 @@ class FileUploadView(APIView):
             )
 
         filename = f'{uuid.uuid4().hex}{ext}'
-        upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', resource_type)
-        os.makedirs(upload_dir, exist_ok=True)
-        filepath = os.path.join(upload_dir, filename)
+        storage_path = f'uploads/{resource_type}/{filename}'
 
-        with open(filepath, 'wb') as f:
-            for chunk in file.chunks():
-                f.write(chunk)
+        file_url = _upload_to_supabase(file, storage_path)
+        if file_url is None:
+            # Local disk fallback -- fine for local dev, but Render's filesystem is
+            # ephemeral and wipes this on every deploy. Set SUPABASE_URL/SUPABASE_SERVICE_KEY
+            # to use durable storage instead.
+            upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', resource_type)
+            os.makedirs(upload_dir, exist_ok=True)
+            filepath = os.path.join(upload_dir, filename)
+            with open(filepath, 'wb') as f:
+                for chunk in file.chunks():
+                    f.write(chunk)
+            file_url = request.build_absolute_uri(f'{settings.MEDIA_URL}uploads/{resource_type}/{filename}')
 
-        file_url = request.build_absolute_uri(
-            f'{settings.MEDIA_URL}uploads/{resource_type}/{filename}'
-        )
         return Response({'url': file_url, 'resource_type': resource_type}, status=status.HTTP_201_CREATED)

@@ -11,7 +11,7 @@ services:
       - key: DEBUG
         value: False
       - key: ALLOWED_HOSTS
-        value: lulimi-connect-backend.onrender.com
+        value: lulimi-onnect-mvp.onrender.com
       - key: DATABASE_URL
         sync: false
       - key: ANTHROPIC_API_KEY
@@ -28,3 +28,9 @@ services:
         sync: false
       - key: GOOGLE_OAUTH_REDIRECT_URI
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: lulimi-uploads
