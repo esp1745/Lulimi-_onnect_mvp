@@ -11,6 +11,7 @@ import { LearnerDashboard } from "./pages/learner-dashboard";
 import { LearnerProfile } from "./pages/learner-profile";
 import { Messages } from "./pages/messages";
 import { MessageThread } from "./pages/message-thread";
+import { ResourceLibrary } from "./pages/resource-library";
 import { About } from "./pages/about";
 import { SignIn } from "./pages/sign-in";
 import { SignUp } from "./pages/sign-up";
@@ -65,6 +66,10 @@ export const router = createBrowserRouter([
   {
     path: "/messages/:userId",
     Component: MessageThread,
+  },
+  {
+    path: "/resources",
+    Component: ResourceLibrary,
   },
   {
     path: "/about",

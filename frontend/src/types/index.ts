@@ -125,6 +125,7 @@ export interface Booking {
 export interface Resource {
   id: number
   teacher: number
+  teacher_name: string
   title: string
   description: string
   language_name: string

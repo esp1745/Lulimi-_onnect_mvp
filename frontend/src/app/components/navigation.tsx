@@ -39,6 +39,7 @@ function MessagesBadge() {
 const navLinks = [
   { label: "Find a Teacher", to: "/teachers" },
   { label: "Languages", to: "/teachers" },
+  { label: "Resources", to: "/resources" },
   { label: "For Teachers", to: "/teacher/onboarding" },
   { label: "About", to: "/about" },
 ];

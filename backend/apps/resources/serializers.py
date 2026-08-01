@@ -3,10 +3,12 @@ from .models import Resource, LessonResource
 
 
 class ResourceSerializer(serializers.ModelSerializer):
+    teacher_name = serializers.CharField(source='teacher.user.full_name', read_only=True)
+
     class Meta:
         model = Resource
         fields = [
-            'id', 'teacher', 'title', 'description', 'language_name',
+            'id', 'teacher', 'teacher_name', 'title', 'description', 'language_name',
             'resource_type', 'file_url', 'content_text', 'visibility', 'created_at',
         ]
         read_only_fields = ['id', 'teacher', 'created_at']
