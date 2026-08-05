@@ -1,7 +1,7 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
-from django.conf.urls.static import static
+from django.views.static import serve
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -14,4 +14,14 @@ urlpatterns = [
     path('api/ai/', include('apps.ai_assistant.urls')),
     path('api/calendar/', include('apps.calendar_integration.urls')),
     path('api/messaging/', include('apps.messaging.urls')),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Serve user uploads. Django's static() helper only registers this when
+    # DEBUG=True, so serve MEDIA explicitly to keep uploads reachable in
+    # production too. NOTE: on ephemeral-disk hosts (e.g. Render's default),
+    # these files are lost on redeploy — move MEDIA to object storage (S3/
+    # Cloudinary) for durable uploads.
+    re_path(
+        r'^%s(?P<path>.*)$' % settings.MEDIA_URL.lstrip('/'),
+        serve,
+        {'document_root': settings.MEDIA_ROOT},
+    ),
+]

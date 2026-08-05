@@ -17,6 +17,8 @@ from apps.bookings.serializers import BookingSerializer
 from apps.accounts.models import User
 from apps.calendar_integration.models import GoogleCalendarAccount
 from apps.calendar_integration import google_client
+from apps.notifications.models import Notification
+from apps.notifications import email as notify_email
 
 
 class IsTeacher(permissions.BasePermission):
@@ -55,10 +57,22 @@ class PublishTeacherProfileView(APIView):
                 {'detail': 'Complete your profile (headline, bio, and at least one language) before publishing.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        was_approved = teacher.approval_status == 'approved'
         teacher.is_published = True
-        teacher.approval_status = 'pending'
+        # MVP: auto-approve on publish so teachers appear in the marketplace
+        # immediately. Re-introduce a moderation queue by setting this to
+        # 'pending' and approving from the admin when human review is added.
+        teacher.approval_status = 'approved'
         teacher.save()
-        return Response({'detail': 'Profile submitted for approval.'})
+        if not was_approved:
+            Notification.objects.create(
+                user=teacher.user,
+                notification_type='profile_approved',
+                title='Your profile is live',
+                body='Your teaching profile is now published and visible to learners in the marketplace.',
+            )
+            notify_email.send_profile_approved_email(teacher.user)
+        return Response({'detail': 'Your profile is now live in the marketplace.'})
 
 
 # --- Marketplace ---
@@ -137,6 +151,27 @@ class MarketplaceView(generics.ListAPIView):
 
 
 # --- Teacher Languages ---
+
+class MarketplaceLanguagesView(APIView):
+    """Public list of languages currently taught by published+approved teachers,
+    with a count of how many teachers offer each. Drives the dynamic language
+    lists on the homepage and marketplace filters, so whatever a teacher enters
+    during onboarding shows up automatically."""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        rows = (
+            TeacherLanguage.objects
+            .filter(teacher__is_published=True, teacher__approval_status='approved')
+            .values('language_name')
+            .annotate(teacher_count=Count('teacher', distinct=True))
+            .order_by('-teacher_count', 'language_name')
+        )
+        return Response([
+            {'language_name': r['language_name'], 'teacher_count': r['teacher_count']}
+            for r in rows
+        ])
+
 
 class TeacherLanguageListCreateView(generics.ListCreateAPIView):
     serializer_class = TeacherLanguageSerializer

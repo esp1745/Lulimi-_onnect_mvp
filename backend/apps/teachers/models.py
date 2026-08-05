@@ -27,8 +27,10 @@ class Teacher(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)  # numeric hourly rate (USD)
     profile_photo_url = models.URLField(blank=True)
     intro_audio_url = models.URLField(blank=True)
+    intro_video_url = models.URLField(blank=True)
     whatsapp_number = models.CharField(max_length=20, blank=True)
     region = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100, blank=True)
     institution = models.CharField(max_length=255, blank=True)
     professional_role = models.CharField(max_length=255, blank=True)
     education = models.JSONField(default=list, blank=True)  # [{"degree": "...", "institution": "..."}]

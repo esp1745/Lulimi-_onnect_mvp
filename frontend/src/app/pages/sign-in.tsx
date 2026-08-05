@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -8,7 +8,13 @@ import { useAuth } from "../context/auth-context";
 import type { User } from "@/types";
 import lulimiLogoBlack from "@/assets/lulimi-logo-black.png";
 
-function routeForUser(user: User, navigate: ReturnType<typeof useNavigate>) {
+function routeForUser(user: User, navigate: ReturnType<typeof useNavigate>, from?: string) {
+  // If the user was sent here mid-flow (e.g. booking a specific teacher), take
+  // them back where they came from instead of the generic dashboard.
+  if (from) {
+    navigate(from);
+    return;
+  }
   if (user.role === "teacher") navigate("/teacher/dashboard");
   else if (user.role === "admin") navigate("/");
   else navigate("/learner/dashboard");
@@ -17,6 +23,8 @@ function routeForUser(user: User, navigate: ReturnType<typeof useNavigate>) {
 export function SignIn() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +44,7 @@ export function SignIn() {
     try {
       const user = await signIn(email, password);
       toast.success("Welcome back!");
-      routeForUser(user, navigate);
+      routeForUser(user, navigate, from);
     } catch {
       setError("Invalid email or password.");
     } finally {
@@ -46,7 +54,7 @@ export function SignIn() {
 
   const handleGoogleSuccess = (user: User) => {
     toast.success("Welcome back!");
-    routeForUser(user, navigate);
+    routeForUser(user, navigate, from);
   };
 
   return (
@@ -126,7 +134,7 @@ export function SignIn() {
 
         <p className="text-center text-sm text-gray-400 mt-8">
           Are you a teacher?{" "}
-          <Link to="/teacher/onboarding" className="text-[#1A3A35] font-semibold hover:underline">
+          <Link to="/teach" className="text-[#1A3A35] font-semibold hover:underline">
             Apply to teach
           </Link>
         </p>

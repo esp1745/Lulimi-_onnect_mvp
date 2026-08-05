@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
@@ -12,6 +12,7 @@ import { StepAvailability } from "../components/onboarding/step-availability";
 import { StepGoLive } from "../components/onboarding/step-go-live";
 import { useAuth } from "../context/auth-context";
 import { submitOnboarding } from "@/lib/onboardingSubmit";
+import { detectTimezone } from "@/lib/timezones";
 import lulimiLogoWhite from "@/assets/lulimi-logo-white.png";
 
 export interface OnboardingData {
@@ -60,7 +61,7 @@ const steps = [
 ];
 
 export function TeacherOnboarding() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isPublished, setIsPublished] = useState(false);
@@ -82,7 +83,7 @@ export function TeacherOnboarding() {
     availability: {
       days: [],
       timeSlots: [],
-      timezone: "GMT+0",
+      timezone: detectTimezone(),
     },
     pricing: {
       hourlyRate: 0,
@@ -91,6 +92,37 @@ export function TeacherOnboarding() {
       slidingScale: false,
     },
   });
+
+  // Onboarding requires a teacher account. Send visitors to sign-up first
+  // (returning here afterwards) so their work is tied to an account and can
+  // actually be published — no more "publish errored, redo everything".
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate("/signup?role=teacher&next=/teacher/onboarding", { replace: true });
+    } else if (user.role !== "teacher") {
+      toast.error("Only teacher accounts can build a teaching profile.");
+      navigate("/learner/dashboard", { replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
+  // Prefill from the signed-in account so teachers don't retype what we know.
+  useEffect(() => {
+    if (!user) return;
+    const [firstName = "", ...rest] = user.full_name.split(" ");
+    setFormData((prev) => ({
+      ...prev,
+      firstName: prev.firstName || firstName,
+      lastName: prev.lastName || rest.join(" "),
+      email: prev.email || user.email,
+      country: prev.country || user.country || "",
+    }));
+  }, [user]);
+
+  // Each step change should start at the top, not wherever the last step ended.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentStep]);
 
   const updateFormData = (data: Partial<OnboardingData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -111,6 +143,10 @@ export function TeacherOnboarding() {
   const goToStep = (step: number) => {
     setCurrentStep(step);
   };
+
+  if (authLoading || !user || user.role !== "teacher") {
+    return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>;
+  }
 
   const handlePublish = async () => {
     if (!user) {

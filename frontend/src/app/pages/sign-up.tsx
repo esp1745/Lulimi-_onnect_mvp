@@ -20,6 +20,7 @@ export function SignUp() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [role, setRole] = useState<Role>(searchParams.get("role") === "teacher" ? "teacher" : "student");
+  const next = searchParams.get("next");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -59,7 +60,7 @@ export function SignUp() {
         role: apiRole(role),
       });
       toast.success("Account created! Welcome to Lulimi.");
-      navigate(role === "teacher" ? "/teacher/onboarding" : "/");
+      navigate(next || (role === "teacher" ? "/teacher/onboarding" : "/"));
     } catch (err: unknown) {
       const data = (err as { response?: { data?: unknown } })?.response?.data;
       setError(typeof data === "object" && data ? Object.values(data).flat().join(" ") : "Registration failed.");
@@ -70,7 +71,7 @@ export function SignUp() {
 
   const handleGoogleSuccess = (user: User) => {
     toast.success("Account ready!");
-    navigate(user.role === "teacher" ? "/teacher/onboarding" : "/");
+    navigate(next || (user.role === "teacher" ? "/teacher/onboarding" : "/"));
   };
 
   return (
@@ -174,11 +175,11 @@ export function SignUp() {
             />
             <label htmlFor="agree" className="text-sm text-gray-600 cursor-pointer">
               I agree to the{" "}
-              <Link to="/" className="text-[#C4622D] font-medium hover:underline">
+              <Link to="/terms" className="text-[#C4622D] font-medium hover:underline">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link to="/" className="text-[#C4622D] font-medium hover:underline">
+              <Link to="/privacy" className="text-[#C4622D] font-medium hover:underline">
                 Privacy Policy
               </Link>
             </label>

@@ -15,6 +15,7 @@ ALLOWED_TYPES = {
     'audio': ['.mp3', '.wav', '.m4a', '.ogg'],
     'pdf': ['.pdf'],
     'image': ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+    'video': ['.mp4', '.mov', '.webm'],
 }
 
 

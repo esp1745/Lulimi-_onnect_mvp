@@ -51,6 +51,7 @@ export interface Review {
 
 export interface Teacher {
   id: number
+  user_id?: number
   full_name: string
   country: string
   timezone?: string

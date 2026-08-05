@@ -109,7 +109,8 @@ class TeacherSerializer(TeacherStatsMixin, serializers.ModelSerializer):
             'id', 'full_name', 'country', 'timezone', 'headline', 'bio',
             'lesson_format', 'teaching_levels', 'age_groups', 'years_experience',
             'certifications', 'pricing_info', 'price', 'profile_photo_url', 'intro_audio_url',
-            'whatsapp_number', 'region', 'institution', 'professional_role', 'education',
+            'intro_video_url', 'whatsapp_number', 'region', 'city', 'institution',
+            'professional_role', 'education',
             'work_experience', 'specializations', 'services', 'badge', 'is_published',
             'approval_status', 'is_featured', 'languages', 'availability', 'rating',
             'review_count', 'follower_count', 'minutes_coached', 'score_breakdown',
@@ -124,14 +125,15 @@ class TeacherPublicSerializer(TeacherStatsMixin, serializers.ModelSerializer):
     availability = AvailabilitySerializer(many=True, read_only=True)
     full_name = serializers.CharField(source='user.full_name', read_only=True)
     country = serializers.CharField(source='user.country', read_only=True)
+    user_id = serializers.IntegerField(read_only=True)  # for starting a message thread
 
     class Meta:
         model = Teacher
         fields = [
-            'id', 'full_name', 'country', 'headline', 'bio', 'lesson_format',
+            'id', 'user_id', 'full_name', 'country', 'headline', 'bio', 'lesson_format',
             'teaching_levels', 'years_experience', 'certifications', 'pricing_info', 'price',
-            'profile_photo_url', 'intro_audio_url', 'whatsapp_number', 'region',
-            'institution', 'professional_role', 'education', 'specializations',
+            'profile_photo_url', 'intro_audio_url', 'intro_video_url', 'whatsapp_number', 'region', 'city',
+            'institution', 'professional_role', 'education', 'work_experience', 'specializations',
             'services', 'badge', 'is_featured', 'languages', 'availability', 'rating',
             'review_count', 'follower_count', 'minutes_coached', 'score_breakdown',
             'packages', 'created_at',

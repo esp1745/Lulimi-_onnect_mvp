@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { Clock, DollarSign } from "lucide-react";
 import type { OnboardingData } from "../../pages/teacher-onboarding";
+import { TIMEZONE_OPTIONS, formatTimezoneLabel } from "@/lib/timezones";
 
 interface StepProps {
   formData: OnboardingData;
@@ -15,7 +16,6 @@ const timeSlots = [
   "Evening (5-9 PM)",
   "Late night (9 PM-12 AM)",
 ];
-const timezones = ["GMT+0", "GMT+1", "GMT+2", "GMT+3", "GMT-5", "GMT-8"];
 
 type PricingToggleKey = "freeIntro" | "packageDiscounts" | "slidingScale";
 
@@ -81,6 +81,7 @@ export function StepAvailability({ formData, updateFormData }: StepProps) {
       <div className="flex flex-wrap gap-2 mb-8">
         {days.map((day) => (
           <button
+            type="button"
             key={day}
             onClick={() => toggleDay(day)}
             className={`px-5 py-2 rounded-full border text-sm font-medium transition-colors ${
@@ -118,14 +119,17 @@ export function StepAvailability({ formData, updateFormData }: StepProps) {
         onChange={(e) =>
           updateFormData({ availability: { ...formData.availability, timezone: e.target.value } })
         }
-        className="w-full px-4 py-3 bg-white border border-[#EDE7D9] rounded-xl mb-8 focus:outline-none focus:border-[#1A3A35]"
+        className="w-full px-4 py-3 bg-white border border-[#EDE7D9] rounded-xl mb-2 focus:outline-none focus:border-[#1A3A35]"
       >
-        {timezones.map((tz) => (
-          <option key={tz} value={tz}>
-            {tz}
+        {TIMEZONE_OPTIONS.map((tz) => (
+          <option key={tz.value} value={tz.value}>
+            {formatTimezoneLabel(tz)}
           </option>
         ))}
       </select>
+      <p className="text-xs text-gray-400 mb-8">
+        Learners see your availability converted into their own timezone automatically.
+      </p>
 
       <div className="bg-white border border-[#EDE7D9] rounded-2xl p-6">
         <h4 className="flex items-center gap-2 font-semibold text-[#1A3A35] mb-4">
@@ -137,36 +141,53 @@ export function StepAvailability({ formData, updateFormData }: StepProps) {
           <span className="text-gray-500 mr-2">$</span>
           <input
             type="number"
-            value={formData.pricing.hourlyRate}
-            onChange={(e) =>
-              updateFormData({ pricing: { ...formData.pricing, hourlyRate: Number(e.target.value) } })
-            }
+            min={0}
+            inputMode="decimal"
+            // Show an empty field (not a stubborn leading "0") until a rate is
+            // entered, so typing "10" doesn't become "010".
+            value={formData.pricing.hourlyRate === 0 ? "" : formData.pricing.hourlyRate}
+            onChange={(e) => {
+              const raw = e.target.value;
+              const next = raw === "" ? 0 : Math.max(0, Number(raw));
+              updateFormData({
+                pricing: { ...formData.pricing, hourlyRate: Number.isNaN(next) ? 0 : next },
+              });
+            }}
+            placeholder="0"
             className="flex-1 bg-transparent focus:outline-none"
           />
         </div>
         <p className="text-xs text-gray-400 mb-5">Most teachers charge between $15-40 per hour</p>
 
         <div className="divide-y divide-[#EDE7D9]">
-          {pricingToggles.map((item) => (
-            <div key={item.key} className="flex items-center justify-between py-4">
-              <div>
-                <div className="font-medium text-[#1A3A35]">{item.title}</div>
-                <div className="text-sm text-gray-500">{item.description}</div>
-              </div>
+          {pricingToggles.map((item) => {
+            const active = formData.pricing[item.key];
+            return (
               <button
+                type="button"
+                key={item.key}
                 onClick={() => togglePricing(item.key)}
-                className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${
-                  formData.pricing[item.key] ? "bg-[#1A3A35]" : "bg-[#EDE7D9]"
-                }`}
+                aria-pressed={active}
+                className="flex items-center justify-between gap-4 py-4 w-full text-left"
               >
+                <div>
+                  <div className="font-medium text-[#1A3A35]">{item.title}</div>
+                  <div className="text-sm text-gray-500">{item.description}</div>
+                </div>
                 <span
-                  className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                    formData.pricing[item.key] ? "translate-x-5" : "translate-x-0.5"
+                  className={`w-12 h-7 rounded-full relative transition-colors flex-shrink-0 border ${
+                    active ? "bg-[#2D5A45] border-[#2D5A45]" : "bg-gray-200 border-gray-300"
                   }`}
-                />
+                >
+                  <span
+                    className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-md transition-transform ${
+                      active ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </span>
               </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </motion.div>

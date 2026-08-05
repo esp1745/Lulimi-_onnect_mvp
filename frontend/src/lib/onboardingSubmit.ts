@@ -19,17 +19,6 @@ const SLOT_TIMES: Record<string, [string, string]> = {
   "Late night (9 PM-12 AM)": ["21:00", "23:59"],
 };
 
-// Python's zoneinfo doesn't recognize "GMT+N" labels directly; the POSIX
-// Etc/GMT zones also invert the sign relative to everyday usage.
-const TIMEZONE_MAP: Record<string, string> = {
-  "GMT+0": "UTC",
-  "GMT+1": "Etc/GMT-1",
-  "GMT+2": "Etc/GMT-2",
-  "GMT+3": "Etc/GMT-3",
-  "GMT-5": "Etc/GMT+5",
-  "GMT-8": "Etc/GMT+8",
-};
-
 async function uploadDataUrlPhoto(dataUrl: string): Promise<string> {
   const blob = await (await fetch(dataUrl)).blob();
   const form = new FormData();
@@ -57,7 +46,8 @@ async function syncLanguages(selected: OnboardingData["selectedLanguages"]) {
 
 async function syncAvailability(availability: OnboardingData["availability"]) {
   if (availability.days.length === 0 || availability.timeSlots.length === 0) return;
-  const timezone = TIMEZONE_MAP[availability.timezone] ?? "UTC";
+  // `availability.timezone` is already an IANA id (e.g. "Africa/Lagos").
+  const timezone = availability.timezone || "UTC";
   const { data: existing } = await api.get("/api/teachers/availability/");
   await Promise.all(existing.map((slot: { id: number }) => api.delete(`/api/teachers/availability/${slot.id}/`)));
 
@@ -86,12 +76,21 @@ export async function submitOnboarding(formData: OnboardingData): Promise<number
     profile_photo_url = await uploadDataUrlPhoto(formData.photoUrl);
   }
 
+  // Only persist a video link if it's a real, shareable URL. A "blob:" object
+  // URL from a local file preview would 404 for everyone else, so drop it.
+  const intro_video_url =
+    formData.introVideoUrl && !formData.introVideoUrl.startsWith("blob:")
+      ? formData.introVideoUrl
+      : "";
+
   const { data: profile } = await api.put("/api/teachers/profile/", {
     headline: formData.headline,
     bio: formData.bio,
+    city: formData.city,
     education: formData.education.map((e) => ({ degree: e.degree, institution: e.institution })),
     work_experience: formData.experience,
     specializations: formData.specializations,
+    intro_video_url,
     price: formData.pricing.hourlyRate || null,
     pricing_info: [
       formData.pricing.freeIntro && "Free intro session",
@@ -102,6 +101,11 @@ export async function submitOnboarding(formData: OnboardingData): Promise<number
       .join(" · "),
     ...(profile_photo_url ? { profile_photo_url } : {}),
   });
+
+  // Country lives on the User account, not the Teacher profile.
+  if (formData.country) {
+    await api.patch("/api/auth/me/", { country: formData.country }).catch(() => {});
+  }
 
   await syncLanguages(formData.selectedLanguages);
   await syncAvailability(formData.availability);

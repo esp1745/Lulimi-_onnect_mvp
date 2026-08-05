@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "motion/react";
 import { Video, Lightbulb, Mic, Languages, Heart } from "lucide-react";
 import { toast } from "sonner";
+import api from "@/lib/api";
 import type { OnboardingData } from "../../pages/teacher-onboarding";
 
 interface StepProps {
@@ -37,17 +38,9 @@ const tips = [
 
 export function StepIntroVideo({ formData, updateFormData }: StepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const objectUrlRef = useRef<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-      }
-    };
-  }, []);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
@@ -61,12 +54,22 @@ export function StepIntroVideo({ formData, updateFormData }: StepProps) {
       return;
     }
 
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
+    // Upload straight away so the video is a real, shareable URL that persists
+    // on the profile — a local object URL would only work in this browser tab.
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const { data } = await api.post("/api/resources/upload/", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      updateFormData({ introVideoUrl: data.url });
+      toast.success("Video uploaded.");
+    } catch {
+      toast.error("Could not upload video. Please try again or paste a link below.");
+    } finally {
+      setUploading(false);
     }
-    const objectUrl = URL.createObjectURL(file);
-    objectUrlRef.current = objectUrl;
-    updateFormData({ introVideoUrl: objectUrl });
   };
 
   return (
@@ -118,10 +121,11 @@ export function StepIntroVideo({ formData, updateFormData }: StepProps) {
         </div>
         <button
           type="button"
+          disabled={uploading}
           onClick={() => fileInputRef.current?.click()}
-          className="bg-[#1A3A35] text-white rounded-full px-6 py-2.5 text-sm font-medium hover:bg-[#2D5A45]"
+          className="bg-[#1A3A35] text-white rounded-full px-6 py-2.5 text-sm font-medium hover:bg-[#2D5A45] disabled:opacity-50"
         >
-          Choose file
+          {uploading ? "Uploading…" : "Choose file"}
         </button>
       </div>
 

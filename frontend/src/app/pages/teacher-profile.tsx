@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
@@ -37,9 +37,83 @@ export function TeacherProfile() {
     learner_whatsapp_number: "",
     timezone_snapshot: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
-  const [startRaw, setStartRaw] = useState("");
-  const [endRaw, setEndRaw] = useState("");
+  const [selectedStart, setSelectedStart] = useState("");
   const [bookingLoading, setBookingLoading] = useState(false);
+
+  const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const pendingKey = `pendingBooking:${id}`;
+
+  const selectSlot = (startISO: string, endISO: string) => {
+    setSelectedStart(startISO);
+    setBooking((b) => ({ ...b, start_at: startISO, end_at: endISO }));
+  };
+
+  // Build concrete, clickable lesson slots for the next two weeks from the
+  // teacher's recurring weekly availability (already converted to the viewer's
+  // timezone by the API). One-hour slots, past times dropped.
+  const upcomingSlots = useMemo(() => {
+    const active = availability.filter((a) => a.is_active);
+    if (active.length === 0) return [];
+    const now = new Date();
+    const days: { key: string; label: string; slots: { startISO: string; endISO: string; label: string }[] }[] = [];
+
+    for (let d = 0; d < 14; d++) {
+      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d);
+      const mondayIdx = (date.getDay() + 6) % 7; // JS Sun=0 → Mon=0 scheme
+      const slots: { startISO: string; endISO: string; label: string }[] = [];
+
+      for (const a of active) {
+        const dow = a.converted_day_of_week ?? a.day_of_week;
+        if (dow !== mondayIdx) continue;
+        const [sh, sm] = (a.converted_start_time ?? a.start_time).split(":").map(Number);
+        const [eh, em] = (a.converted_end_time ?? a.end_time).split(":").map(Number);
+        const windowEnd = new Date(date);
+        windowEnd.setHours(eh, em, 0, 0);
+        const cursor = new Date(date);
+        cursor.setHours(sh, sm, 0, 0);
+        while (cursor < windowEnd) {
+          const rawEnd = new Date(cursor.getTime() + 60 * 60 * 1000);
+          const end = rawEnd > windowEnd ? windowEnd : rawEnd;
+          if (cursor > now && end.getTime() - cursor.getTime() >= 30 * 60 * 1000) {
+            slots.push({
+              startISO: cursor.toISOString(),
+              endISO: end.toISOString(),
+              label: cursor.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+            });
+          }
+          cursor.setTime(rawEnd.getTime());
+        }
+      }
+
+      if (slots.length) {
+        slots.sort((x, y) => x.startISO.localeCompare(y.startISO));
+        days.push({
+          key: date.toISOString().slice(0, 10),
+          label: date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }),
+          slots,
+        });
+      }
+    }
+    return days;
+  }, [availability]);
+
+  // If the learner started a booking before signing in, we stashed it in
+  // sessionStorage and bounced them to /signin. Restore it here so they land
+  // back on the right teacher with their time still filled in.
+  useEffect(() => {
+    if (!id || !user) return;
+    const stored = sessionStorage.getItem(pendingKey);
+    if (!stored) return;
+    try {
+      const saved = JSON.parse(stored);
+      setBooking((b) => ({ ...b, ...saved.booking }));
+      if (saved.booking?.start_at) setSelectedStart(saved.booking.start_at);
+      toast.info("Welcome back — we kept your booking details.");
+    } catch {
+      /* ignore malformed */
+    }
+    sessionStorage.removeItem(pendingKey);
+  }, [id, user, pendingKey]);
 
   useEffect(() => {
     if (!id) return;
@@ -58,10 +132,23 @@ export function TeacherProfile() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const handleMessage = () => {
+    if (!user) {
+      toast.info("Please sign in to message this teacher.");
+      navigate("/signin", { state: { from: `/teacher/${id}` } });
+      return;
+    }
+    if (!teacher?.user_id) return;
+    navigate(`/messages/${teacher.user_id}`, { state: { name: teacher.full_name } });
+  };
+
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      navigate("/signin");
+      // Keep what they've entered and come straight back to this teacher after login.
+      sessionStorage.setItem(pendingKey, JSON.stringify({ booking }));
+      toast.info("Please sign in to finish booking — we'll bring you right back.");
+      navigate("/signin", { state: { from: `/teacher/${id}` } });
       return;
     }
     if (user.role !== "learner") {
@@ -79,6 +166,8 @@ export function TeacherProfile() {
       }
       await api.post("/api/bookings/", { teacher: Number(id), ...booking });
       toast.success("Booking request sent! The teacher will confirm shortly.");
+      setSelectedStart("");
+      setBooking((b) => ({ ...b, start_at: "", end_at: "" }));
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       toast.error(detail || "Could not send booking request.");
@@ -121,14 +210,25 @@ export function TeacherProfile() {
                   {avatarInitial(teacher.full_name)}
                 </div>
               )}
-              <Button
-                variant="outline"
-                className="rounded-full border-[#C4622D] text-[#C4622D] hover:bg-[#C4622D] hover:text-white"
-                onClick={() => toast.info("Following teachers is coming soon.")}
-              >
-                <Heart className="w-4 h-4 mr-2" />
-                Follow
-              </Button>
+              <div className="flex flex-col gap-2 w-full">
+                {user?.role !== "teacher" && (
+                  <Button
+                    className="rounded-full bg-[#1A3A35] hover:bg-[#2D5A45] text-white"
+                    onClick={handleMessage}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  className="rounded-full border-[#C4622D] text-[#C4622D] hover:bg-[#C4622D] hover:text-white"
+                  onClick={() => toast.info("Following teachers is coming soon.")}
+                >
+                  <Heart className="w-4 h-4 mr-2" />
+                  Follow
+                </Button>
+              </div>
             </div>
 
             {/* Right: Details */}
@@ -331,36 +431,66 @@ export function TeacherProfile() {
                 <form onSubmit={handleBook} className="space-y-3">
                   <div className="space-y-1">
                     <Label>Language</Label>
-                    <Input
-                      value={booking.language_name}
-                      onChange={(e) => setBooking((b) => ({ ...b, language_name: e.target.value }))}
-                      placeholder="e.g. Kinyarwanda"
-                      required
-                    />
+                    {teacher.languages.length > 0 ? (
+                      <select
+                        value={booking.language_name}
+                        onChange={(e) => setBooking((b) => ({ ...b, language_name: e.target.value }))}
+                        required
+                        className="w-full rounded-xl px-3 py-2 text-sm bg-white border border-[#1A3A35]/15 focus:outline-none focus:ring-2 focus:ring-[#1A3A35]/20"
+                      >
+                        <option value="">Choose a language</option>
+                        {teacher.languages.map((l) => (
+                          <option key={l.id} value={l.language_name}>
+                            {l.language_name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        value={booking.language_name}
+                        onChange={(e) => setBooking((b) => ({ ...b, language_name: e.target.value }))}
+                        placeholder="e.g. Kinyarwanda"
+                        required
+                      />
+                    )}
                   </div>
                   <div className="space-y-1">
-                    <Label>Start time</Label>
-                    <Input
-                      type="datetime-local"
-                      value={startRaw}
-                      onChange={(e) => {
-                        setStartRaw(e.target.value);
-                        setBooking((b) => ({ ...b, start_at: e.target.value ? new Date(e.target.value).toISOString() : "" }));
-                      }}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>End time</Label>
-                    <Input
-                      type="datetime-local"
-                      value={endRaw}
-                      onChange={(e) => {
-                        setEndRaw(e.target.value);
-                        setBooking((b) => ({ ...b, end_at: e.target.value ? new Date(e.target.value).toISOString() : "" }));
-                      }}
-                      required
-                    />
+                    <Label>Pick a time</Label>
+                    {upcomingSlots.length === 0 ? (
+                      <p className="text-xs text-gray-400">
+                        This teacher hasn't opened any upcoming slots yet. Try messaging them to arrange a time.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                          {upcomingSlots.map((day) => (
+                            <div key={day.key}>
+                              <div className="text-xs font-semibold text-[#1A3A35] mb-1.5">{day.label}</div>
+                              <div className="flex flex-wrap gap-2">
+                                {day.slots.map((s) => {
+                                  const active = selectedStart === s.startISO;
+                                  return (
+                                    <button
+                                      key={s.startISO}
+                                      type="button"
+                                      onClick={() => selectSlot(s.startISO, s.endISO)}
+                                      className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                                        active
+                                          ? "bg-[#C4622D] text-white border-[#C4622D]"
+                                          : "bg-white text-[#1A3A35] border-[#1A3A35]/20 hover:border-[#C4622D]"
+                                      }`}
+                                    >
+                                      {s.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1">Times shown in your timezone ({viewerTz}).</p>
+                      </>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label>
@@ -375,7 +505,7 @@ export function TeacherProfile() {
                   <Button
                     type="submit"
                     className="w-full bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full"
-                    disabled={bookingLoading}
+                    disabled={bookingLoading || !booking.start_at || !booking.language_name}
                   >
                     {bookingLoading ? "Sending…" : user ? "Request lesson" : "Sign in to book"}
                   </Button>

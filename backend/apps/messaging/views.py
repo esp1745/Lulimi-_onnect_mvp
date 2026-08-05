@@ -13,6 +13,12 @@ from apps.notifications import email as notify_email
 
 
 def _can_message(user_a, user_b):
+    if user_a.id == user_b.id:
+        return False
+    # A learner and a teacher may always start a conversation (e.g. a learner
+    # enquiring before booking). Any other pairing needs a shared booking.
+    if {user_a.role, user_b.role} == {'teacher', 'learner'}:
+        return True
     return Booking.objects.filter(
         Q(teacher__user=user_a, learner=user_b) | Q(teacher__user=user_b, learner=user_a)
     ).exists()

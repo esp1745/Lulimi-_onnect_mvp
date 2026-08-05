@@ -11,6 +11,19 @@ interface StepProps {
 
 const languageGroups = [
   {
+    region: "Zambian Languages",
+    languages: [
+      { name: "Bemba", country: "ZM" },
+      { name: "Nyanja", country: "ZM" },
+      { name: "Tonga", country: "ZM" },
+      { name: "Lozi", country: "ZM" },
+      { name: "Kaonde", country: "ZM" },
+      { name: "Luvale", country: "ZM" },
+      { name: "Lunda", country: "ZM" },
+      { name: "Tumbuka", country: "ZM" },
+    ],
+  },
+  {
     region: "East Africa",
     languages: [
       { name: "Swahili", country: "TZ" },
@@ -114,6 +127,7 @@ export function StepLanguages({ formData, updateFormData }: StepProps) {
               const Flag = Flags[lang.country as keyof typeof Flags];
               return (
                 <button
+                  type="button"
                   key={lang.name}
                   onClick={() => toggleLanguage(lang.name)}
                   className={`flex flex-col items-start gap-3 p-5 rounded-2xl border text-left transition-colors ${

@@ -47,19 +47,22 @@ export function HeroVideoBackground({ videos, intervalSeconds = 10 }: HeroVideoB
           exit={{ opacity: 0 }}
           transition={{ duration: 1.5, ease: "easeInOut" }}
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: "contrast(1.15) brightness(0.9)" }}
+          style={{ filter: "contrast(1.05) brightness(1.05) saturate(1.1)" }}
         >
           <source src={videos[index]} type="video/mp4" />
         </motion.video>
       </AnimatePresence>
 
-      {/* Contrast overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#1A3A35]/50 via-[#1A3A35]/55 to-[#1A3A35]/75" />
+      {/* Legibility overlay — lighter up top for a brighter feel, deepening
+          toward the bottom so the headline and stats stay readable. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#1A3A35]/30 via-[#1A3A35]/35 to-[#1A3A35]/70" />
+      {/* Warm amber wash so the hero reads sunny rather than cold green. */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-[#F5C42C]/15" />
 
       {/* Grain texture */}
       <div
         className="absolute inset-0 pointer-events-none mix-blend-overlay"
-        style={{ backgroundImage: GRAIN_OVERLAY, opacity: 0.55 }}
+        style={{ backgroundImage: GRAIN_OVERLAY, opacity: 0.3 }}
       />
 
       {/* Manual shuffle controls */}

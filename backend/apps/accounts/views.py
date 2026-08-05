@@ -132,7 +132,10 @@ class PasswordResetRequestView(APIView):
             user = User.objects.get(email=email)
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = _token_generator.make_token(user)
-            reset_link = f"{request.data.get('reset_url', 'http://localhost:3000/reset-password')}?uid={uid}&token={token}"
+            # Build the reset link from our own configured frontend URL — never
+            # from a client-supplied value, which would let an attacker point a
+            # victim's (valid) reset token at a domain they control.
+            reset_link = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
             notify_email._send(
                 subject='Reset Your Password',
                 body=(

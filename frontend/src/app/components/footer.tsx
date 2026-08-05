@@ -5,8 +5,16 @@ import lulimiLogoWhite from "@/assets/lulimi-logo-white.png";
 const linkTargets: Record<string, string> = {
   "Find a Teacher": "/teachers",
   "Browse Languages": "/teachers",
-  "Apply to Teach": "/teacher/onboarding",
+  "How It Works": "/how-it-works",
+  "Pricing": "/pricing",
+  "Apply to Teach": "/teach",
+  "Resources": "/resources",
+  "Community": "/community",
+  "Teacher FAQ": "/teacher-faq",
   "About Us": "/about",
+  "Blog": "/blog",
+  "Contact": "/contact",
+  "Careers": "/careers",
 };
 
 const columns = [
@@ -71,9 +79,9 @@ export function Footer() {
         <div className="border-t border-[#F5F0E8]/10 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-[#F5F0E8]/50">
           <span>© 2026 Lulimi. All rights reserved.</span>
           <div className="flex gap-6">
-            <Link to="/" className="hover:text-[#F5F0E8]">Privacy Policy</Link>
-            <Link to="/" className="hover:text-[#F5F0E8]">Terms of Service</Link>
-            <Link to="/" className="hover:text-[#F5F0E8]">Cookie Policy</Link>
+            <Link to="/privacy" className="hover:text-[#F5F0E8]">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-[#F5F0E8]">Terms of Service</Link>
+            <Link to="/cookie" className="hover:text-[#F5F0E8]">Cookie Policy</Link>
           </div>
         </div>
       </div>

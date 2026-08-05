@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
 import { Button } from "../components/ui/button";
@@ -23,12 +24,31 @@ export function TeacherListing() {
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [availableLanguages, setAvailableLanguages] = useState<{ language_name: string; teacher_count: number }[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("popular");
+  const [searchParams] = useSearchParams();
+
+  // Languages actually taught right now — populated from teacher input, so the
+  // filter list stays in sync with who's on the platform.
+  useEffect(() => {
+    api
+      .get("/api/teachers/marketplace/languages/")
+      .then(({ data }) => setAvailableLanguages(data))
+      .catch(() => setAvailableLanguages([]));
+  }, []);
+
+  // Honour a ?language= param arriving from the homepage.
+  useEffect(() => {
+    const lang = searchParams.get("language");
+    if (lang) setSelectedLanguage(lang);
+  }, [searchParams]);
 
   useEffect(() => {
     const handle = setTimeout(() => {
       const params = new URLSearchParams();
       if (searchQuery.trim()) params.set("search", searchQuery.trim());
+      if (selectedLanguage) params.set("language", selectedLanguage);
       if (priceRange[0] !== 0) params.set("min_price", String(priceRange[0]));
       if (priceRange[1] !== 100) params.set("max_price", String(priceRange[1]));
       selectedRegions.forEach((r) => params.append("region", r));
@@ -43,10 +63,11 @@ export function TeacherListing() {
         .finally(() => setLoading(false));
     }, 350);
     return () => clearTimeout(handle);
-  }, [searchQuery, priceRange, selectedRegions, selectedSpecializations, selectedServices, sortBy]);
+  }, [searchQuery, selectedLanguage, priceRange, selectedRegions, selectedSpecializations, selectedServices, sortBy]);
 
   const clearFilters = () => {
     setSearchQuery("");
+    setSelectedLanguage("");
     setPriceRange([0, 100]);
     setSelectedRegions([]);
     setSelectedSpecializations([]);
@@ -81,6 +102,33 @@ export function TeacherListing() {
                   <span>${priceRange[1]}</span>
                 </div>
               </div>
+
+              {/* Language (dynamic — reflects what teachers actually offer) */}
+              {availableLanguages.length > 0 && (
+                <div className="mb-8">
+                  <h4 className="font-semibold mb-4 text-[#1A3A35]">Language</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {availableLanguages.map((l) => {
+                      const active = selectedLanguage === l.language_name;
+                      return (
+                        <button
+                          key={l.language_name}
+                          type="button"
+                          onClick={() => setSelectedLanguage(active ? "" : l.language_name)}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                            active
+                              ? "bg-[#1A3A35] text-white border-[#1A3A35]"
+                              : "bg-white text-gray-600 border-[#1A3A35]/20 hover:border-[#1A3A35]/40"
+                          }`}
+                        >
+                          {l.language_name}
+                          <span className={active ? "text-white/60" : "text-gray-400"}> · {l.teacher_count}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Region */}
               <div className="mb-8">

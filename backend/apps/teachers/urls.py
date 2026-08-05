@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     TeacherProfileView, TeacherPublicProfileView, PublishTeacherProfileView,
-    MarketplaceView,
+    MarketplaceView, MarketplaceLanguagesView,
     TeacherLanguageListCreateView, TeacherLanguageDeleteView,
     TeacherReviewListCreateView,
     TeacherPackageListCreateView, TeacherPackageDeleteView,
@@ -21,6 +21,7 @@ urlpatterns = [
 
     # Marketplace
     path('marketplace/', MarketplaceView.as_view(), name='marketplace'),
+    path('marketplace/languages/', MarketplaceLanguagesView.as_view(), name='marketplace-languages'),
 
     # Languages
     path('languages/', TeacherLanguageListCreateView.as_view(), name='teacher-languages'),

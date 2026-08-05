@@ -36,12 +36,34 @@ function MessagesBadge() {
   );
 }
 
-const navLinks = [
+type NavLink = { label: string; to: string };
+
+const LOGGED_OUT_LINKS: NavLink[] = [
   { label: "Find a Teacher", to: "/teachers" },
-  { label: "Languages", to: "/teachers" },
-  { label: "For Teachers", to: "/teacher/onboarding" },
+  { label: "How It Works", to: "/how-it-works" },
+  { label: "For Teachers", to: "/teach" },
   { label: "About", to: "/about" },
 ];
+
+const LEARNER_LINKS: NavLink[] = [
+  { label: "Find a Teacher", to: "/teachers" },
+  { label: "My Lessons", to: "/learner/dashboard" },
+  { label: "Messages", to: "/messages" },
+  { label: "How It Works", to: "/how-it-works" },
+];
+
+const TEACHER_LINKS: NavLink[] = [
+  { label: "Dashboard", to: "/teacher/dashboard" },
+  { label: "My Profile", to: "/teacher/profile" },
+  { label: "Availability", to: "/teacher/availability" },
+  { label: "Resources", to: "/teacher/resources" },
+];
+
+function linksForUser(role?: string): NavLink[] {
+  if (role === "teacher") return TEACHER_LINKS;
+  if (role === "learner") return LEARNER_LINKS;
+  return LOGGED_OUT_LINKS;
+}
 
 function dashboardPath(role: string) {
   return role === "teacher" ? "/teacher/dashboard" : "/learner/dashboard";
@@ -64,7 +86,7 @@ export function Navigation() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
+          {linksForUser(user?.role).map((link) => (
             <Link
               key={link.label}
               to={link.to}

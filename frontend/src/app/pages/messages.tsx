@@ -34,9 +34,9 @@ export function Messages() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8]">
+    <div className="min-h-screen bg-[#F5F0E8] flex flex-col">
       <Navigation />
-      <div className="max-w-2xl mx-auto w-full px-6 py-10">
+      <div className="max-w-2xl mx-auto w-full px-6 py-10 flex-1">
         <h1 className="text-3xl font-bold text-[#1A3A35] mb-6" style={{ fontFamily: "Playfair Display, serif" }}>
           Messages
         </h1>

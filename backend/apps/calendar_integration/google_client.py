@@ -1,4 +1,5 @@
 import os
+from datetime import timezone as dt_timezone
 
 # Google's consent screen lets a user grant a subset of the requested scopes.
 # Without this, oauthlib raises on any mismatch between requested and granted
@@ -66,11 +67,17 @@ def exchange_code(code, state):
     oauth2_service = build('oauth2', 'v2', credentials=creds)
     google_email = oauth2_service.userinfo().get().execute()['email']
 
+    # google-auth stores `expiry` as a naive UTC datetime. Django's DateTimeField
+    # (USE_TZ=True) expects an aware value, so tag it as UTC before persisting.
+    expiry = creds.expiry
+    if expiry is not None and expiry.tzinfo is None:
+        expiry = expiry.replace(tzinfo=dt_timezone.utc)
+
     return {
         'google_email': google_email,
         'access_token': creds.token,
         'refresh_token': creds.refresh_token,
-        'token_expiry': creds.expiry,
+        'token_expiry': expiry,
     }
 
 
@@ -83,7 +90,12 @@ def get_credentials(account):
         client_secret=settings.GOOGLE_OAUTH_CLIENT_SECRET,
         scopes=SCOPES,
     )
-    creds.expiry = account.token_expiry
+    # google-auth compares `expiry` against a naive UTC now(), so it must be
+    # naive. Django hands us an aware datetime — convert to naive UTC here.
+    expiry = account.token_expiry
+    if expiry is not None and expiry.tzinfo is not None:
+        expiry = expiry.astimezone(dt_timezone.utc).replace(tzinfo=None)
+    creds.expiry = expiry
 
     if creds.expired:
         creds.refresh(GoogleAuthRequest())

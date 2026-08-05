@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
 import api from "@/lib/api";
 import type { Notification } from "@/types";
 
@@ -102,6 +103,14 @@ export default function NotificationsDropdown() {
               ))
             )}
           </div>
+
+          <Link
+            to="/notifications"
+            onClick={() => setOpen(false)}
+            className="block text-center text-xs font-medium text-[#C4622D] hover:underline px-4 py-3 border-t border-[#1A3A35]/10"
+          >
+            See all notifications
+          </Link>
         </div>
       )}
     </div>

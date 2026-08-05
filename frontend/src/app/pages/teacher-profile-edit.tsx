@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { Plus, X } from "lucide-react";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
 import { Button } from "../components/ui/button";
@@ -16,6 +17,29 @@ import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import type { Teacher } from "@/types";
 
+const SPECIALIZATION_OPTIONS = [
+  "Beginner Learners",
+  "Business Language",
+  "Conversational Practice",
+  "Grammar & Writing",
+  "Exam Preparation",
+  "Kids & Teens",
+  "Cultural Immersion",
+  "Pronunciation",
+];
+
+interface EducationRow {
+  degree: string;
+  institution: string;
+}
+interface ExperienceRow {
+  role: string;
+  organization: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
 export function TeacherProfileEdit() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -23,20 +47,27 @@ export function TeacherProfileEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [newLang, setNewLang] = useState({ language_name: "", proficiency_type: "fluent" });
   const [newPackage, setNewPackage] = useState({ title: "", description: "", hours: "", price: "", savings: "" });
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     headline: "",
     bio: "",
     lesson_format: "online",
     years_experience: "",
     pricing_info: "",
+    city: "",
     profile_photo_url: "",
     intro_audio_url: "",
+    intro_video_url: "",
     whatsapp_number: "",
     teaching_levels: [] as string[],
     age_groups: [] as string[],
+    specializations: [] as string[],
+    education: [] as EducationRow[],
+    work_experience: [] as ExperienceRow[],
     certifications: "",
   });
 
@@ -60,11 +91,16 @@ export function TeacherProfileEdit() {
             lesson_format: r.data.lesson_format || "online",
             years_experience: r.data.years_experience || "",
             pricing_info: r.data.pricing_info || "",
+            city: r.data.city || "",
             profile_photo_url: r.data.profile_photo_url || "",
             intro_audio_url: r.data.intro_audio_url || "",
+            intro_video_url: r.data.intro_video_url || "",
             whatsapp_number: r.data.whatsapp_number || "",
             teaching_levels: r.data.teaching_levels || [],
             age_groups: r.data.age_groups || [],
+            specializations: r.data.specializations || [],
+            education: r.data.education || [],
+            work_experience: r.data.work_experience || [],
             certifications: r.data.certifications || "",
           });
         })
@@ -76,13 +112,72 @@ export function TeacherProfileEdit() {
     e.preventDefault();
     setSaving(true);
     try {
-      const { data } = await api.put("/api/teachers/profile/", form);
+      const payload = {
+        ...form,
+        // Empty number field must go as null, not "" (which fails validation).
+        years_experience: form.years_experience === "" ? null : form.years_experience,
+        // Drop blank education/experience rows so we don't persist empty cards.
+        education: form.education.filter((row) => row.degree.trim() || row.institution.trim()),
+        work_experience: form.work_experience.filter((row) => row.role.trim() || row.organization.trim()),
+      };
+      const { data } = await api.put("/api/teachers/profile/", payload);
       setTeacher(data);
       toast.success("Profile saved.");
     } catch {
       toast.error("Could not save profile.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const toggleSpecialization = (spec: string) =>
+    setForm((f) => ({
+      ...f,
+      specializations: f.specializations.includes(spec)
+        ? f.specializations.filter((s) => s !== spec)
+        : [...f.specializations, spec],
+    }));
+
+  const addEducation = () =>
+    setForm((f) => ({ ...f, education: [...f.education, { degree: "", institution: "" }] }));
+  const updateEducation = (index: number, key: keyof EducationRow, value: string) =>
+    setForm((f) => ({
+      ...f,
+      education: f.education.map((row, i) => (i === index ? { ...row, [key]: value } : row)),
+    }));
+  const removeEducation = (index: number) =>
+    setForm((f) => ({ ...f, education: f.education.filter((_, i) => i !== index) }));
+
+  const addExperience = () =>
+    setForm((f) => ({
+      ...f,
+      work_experience: [...f.work_experience, { role: "", organization: "", startDate: "", endDate: "", description: "" }],
+    }));
+  const updateExperience = (index: number, key: keyof ExperienceRow, value: string) =>
+    setForm((f) => ({
+      ...f,
+      work_experience: f.work_experience.map((row, i) => (i === index ? { ...row, [key]: value } : row)),
+    }));
+  const removeExperience = (index: number) =>
+    setForm((f) => ({ ...f, work_experience: f.work_experience.filter((_, i) => i !== index) }));
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingVideo(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await api.post("/api/resources/upload/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setForm((f) => ({ ...f, intro_video_url: data.url }));
+      toast.success("Video uploaded.");
+    } catch {
+      toast.error("Could not upload video. Use MP4, MOV, or WebM, or paste a link.");
+    } finally {
+      setUploadingVideo(false);
     }
   };
 
@@ -242,6 +337,11 @@ export function TeacherProfileEdit() {
               </div>
 
               <div className="space-y-1">
+                <Label>City</Label>
+                <Input value={form.city} onChange={set("city")} placeholder="e.g. Nairobi" />
+              </div>
+
+              <div className="space-y-1">
                 <Label>Teaching levels</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {["beginner", "intermediate", "advanced"].map((l) => (
@@ -315,6 +415,36 @@ export function TeacherProfileEdit() {
                 <Input value={form.intro_audio_url} onChange={set("intro_audio_url")} placeholder="https://… (mp3 or wav)" />
               </div>
               <div className="space-y-1">
+                <Label>Intro video</Label>
+                {form.intro_video_url && (
+                  <video src={form.intro_video_url} controls className="w-full rounded-xl bg-black mb-2" />
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={form.intro_video_url}
+                    onChange={set("intro_video_url")}
+                    placeholder="Paste a link (YouTube, Loom…) or upload"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploadingVideo}
+                    onClick={() => videoInputRef.current?.click()}
+                  >
+                    {uploadingVideo ? "Uploading…" : "Upload"}
+                  </Button>
+                  <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm"
+                    className="hidden"
+                    onChange={handleVideoUpload}
+                  />
+                </div>
+                <p className="text-xs text-gray-400">MP4, MOV, or WebM.</p>
+              </div>
+              <div className="space-y-1">
                 <Label>
                   WhatsApp number <span className="text-gray-400 font-normal">(optional)</span>
                 </Label>
@@ -325,6 +455,113 @@ export function TeacherProfileEdit() {
                 {saving ? "Saving…" : "Save profile"}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Background</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Education */}
+            <div className="space-y-3">
+              <Label>Education</Label>
+              {form.education.map((edu, idx) => (
+                <div key={idx} className="relative rounded-xl border border-[#1A3A35]/10 p-3">
+                  <button
+                    type="button"
+                    onClick={() => removeEducation(idx)}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                    aria-label="Remove education"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
+                    <Input
+                      value={edu.degree}
+                      onChange={(e) => updateEducation(idx, "degree", e.target.value)}
+                      placeholder="Degree / qualification"
+                    />
+                    <Input
+                      value={edu.institution}
+                      onChange={(e) => updateEducation(idx, "institution", e.target.value)}
+                      placeholder="Institution"
+                    />
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" className="gap-1" onClick={addEducation}>
+                <Plus className="w-4 h-4" /> Add education
+              </Button>
+            </div>
+
+            {/* Teaching experience */}
+            <div className="space-y-3">
+              <Label>Teaching experience</Label>
+              {form.work_experience.map((exp, idx) => (
+                <div key={idx} className="relative rounded-xl border border-[#1A3A35]/10 p-3 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => removeExperience(idx)}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                    aria-label="Remove experience"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
+                    <Input
+                      value={exp.role}
+                      onChange={(e) => updateExperience(idx, "role", e.target.value)}
+                      placeholder="Role"
+                    />
+                    <Input
+                      value={exp.organization}
+                      onChange={(e) => updateExperience(idx, "organization", e.target.value)}
+                      placeholder="Organization"
+                    />
+                  </div>
+                  <Textarea
+                    value={exp.description}
+                    onChange={(e) => updateExperience(idx, "description", e.target.value)}
+                    placeholder="What did you do? (optional)"
+                    rows={2}
+                  />
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" className="gap-1" onClick={addExperience}>
+                <Plus className="w-4 h-4" /> Add experience
+              </Button>
+            </div>
+
+            {/* Specializations */}
+            <div className="space-y-2">
+              <Label>Specializations</Label>
+              <div className="flex flex-wrap gap-2">
+                {SPECIALIZATION_OPTIONS.map((spec) => (
+                  <button
+                    key={spec}
+                    type="button"
+                    onClick={() => toggleSpecialization(spec)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      form.specializations.includes(spec)
+                        ? "bg-[#1A3A35] text-white border-[#1A3A35]"
+                        : "bg-white text-gray-600 border-[#1A3A35]/20 hover:border-[#1A3A35]/40"
+                    }`}
+                  >
+                    {spec}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full"
+              disabled={saving}
+              onClick={handleSave}
+            >
+              {saving ? "Saving…" : "Save background"}
+            </Button>
           </CardContent>
         </Card>
 
