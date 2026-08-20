@@ -9,12 +9,15 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Progress } from "../components/ui/progress";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import PhoneNumberInput from "../components/PhoneNumberInput";
 import { Star, Heart, MapPin, Award, Briefcase, GraduationCap, Video, Clock, Users, MessageCircle } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useAuth } from "../context/auth-context";
 import { avatarInitial, avatarColor } from "@/lib/teacherDisplay";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
+import { generateSlots } from "@/lib/slots";
+import { TIMEZONE_OPTIONS, formatTimezoneLabel } from "@/lib/timezones";
 import api from "@/lib/api";
 import type { Teacher, Availability, Review } from "@/types";
 
@@ -30,72 +33,36 @@ export function TeacherProfile() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [viewerTz, setViewerTz] = useState(browserTz);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const [booking, setBooking] = useState({
     start_at: "",
     end_at: "",
     language_name: "",
     learner_whatsapp_number: "",
-    timezone_snapshot: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone_snapshot: browserTz,
   });
   const [selectedStart, setSelectedStart] = useState("");
   const [bookingLoading, setBookingLoading] = useState(false);
 
-  const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const pendingKey = `pendingBooking:${id}`;
+
+  // Ensure the viewer's own browser zone is always selectable, even if it's
+  // not one of our curated options.
+  const tzOptions = useMemo(() => {
+    if (TIMEZONE_OPTIONS.some((o) => o.value === browserTz)) return TIMEZONE_OPTIONS;
+    return [{ value: browserTz, city: browserTz, country: "Your device" }, ...TIMEZONE_OPTIONS];
+  }, [browserTz]);
 
   const selectSlot = (startISO: string, endISO: string) => {
     setSelectedStart(startISO);
-    setBooking((b) => ({ ...b, start_at: startISO, end_at: endISO }));
+    setBooking((b) => ({ ...b, start_at: startISO, end_at: endISO, timezone_snapshot: viewerTz }));
   };
 
-  // Build concrete, clickable lesson slots for the next two weeks from the
-  // teacher's recurring weekly availability (already converted to the viewer's
-  // timezone by the API). One-hour slots, past times dropped.
-  const upcomingSlots = useMemo(() => {
-    const active = availability.filter((a) => a.is_active);
-    if (active.length === 0) return [];
-    const now = new Date();
-    const days: { key: string; label: string; slots: { startISO: string; endISO: string; label: string }[] }[] = [];
-
-    for (let d = 0; d < 14; d++) {
-      const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d);
-      const mondayIdx = (date.getDay() + 6) % 7; // JS Sun=0 → Mon=0 scheme
-      const slots: { startISO: string; endISO: string; label: string }[] = [];
-
-      for (const a of active) {
-        const dow = a.converted_day_of_week ?? a.day_of_week;
-        if (dow !== mondayIdx) continue;
-        const [sh, sm] = (a.converted_start_time ?? a.start_time).split(":").map(Number);
-        const [eh, em] = (a.converted_end_time ?? a.end_time).split(":").map(Number);
-        const windowEnd = new Date(date);
-        windowEnd.setHours(eh, em, 0, 0);
-        const cursor = new Date(date);
-        cursor.setHours(sh, sm, 0, 0);
-        while (cursor < windowEnd) {
-          const rawEnd = new Date(cursor.getTime() + 60 * 60 * 1000);
-          const end = rawEnd > windowEnd ? windowEnd : rawEnd;
-          if (cursor > now && end.getTime() - cursor.getTime() >= 30 * 60 * 1000) {
-            slots.push({
-              startISO: cursor.toISOString(),
-              endISO: end.toISOString(),
-              label: cursor.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-            });
-          }
-          cursor.setTime(rawEnd.getTime());
-        }
-      }
-
-      if (slots.length) {
-        slots.sort((x, y) => x.startISO.localeCompare(y.startISO));
-        days.push({
-          key: date.toISOString().slice(0, 10),
-          label: date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }),
-          slots,
-        });
-      }
-    }
-    return days;
-  }, [availability]);
+  // Concrete bookable slots, displayed in the viewer's chosen timezone.
+  const upcomingSlots = useMemo(() => generateSlots(availability, viewerTz), [availability, viewerTz]);
 
   // If the learner started a booking before signing in, we stashed it in
   // sessionStorage and bounced them to /signin. Restore it here so they land
@@ -118,19 +85,24 @@ export function TeacherProfile() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    Promise.all([
-      api.get(`/api/teachers/${id}/public/`),
-      api.get(`/api/teachers/${id}/availability/?timezone=${Intl.DateTimeFormat().resolvedOptions().timeZone}`),
-      api.get(`/api/teachers/${id}/reviews/`),
-    ])
-      .then(([t, a, r]) => {
+    Promise.all([api.get(`/api/teachers/${id}/public/`), api.get(`/api/teachers/${id}/reviews/`)])
+      .then(([t, r]) => {
         setTeacher(t.data);
-        setAvailability(a.data);
         setReviews(r.data);
       })
       .catch(() => toast.error("Could not load teacher profile."))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Availability is refetched whenever the chosen timezone changes so the
+  // weekly list is converted server-side into that timezone too.
+  useEffect(() => {
+    if (!id) return;
+    api
+      .get(`/api/teachers/${id}/availability/`, { params: { timezone: viewerTz } })
+      .then(({ data }) => setAvailability(data))
+      .catch(() => setAvailability([]));
+  }, [id, viewerTz]);
 
   const handleMessage = () => {
     if (!user) {
@@ -142,7 +114,7 @@ export function TeacherProfile() {
     navigate(`/messages/${teacher.user_id}`, { state: { name: teacher.full_name } });
   };
 
-  const handleBook = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
       // Keep what they've entered and come straight back to this teacher after login.
@@ -155,6 +127,11 @@ export function TeacherProfile() {
       toast.error("Only learners can book lessons.");
       return;
     }
+    if (!booking.start_at || !booking.language_name) return;
+    setConfirmOpen(true);
+  };
+
+  const doBooking = async () => {
     setBookingLoading(true);
     try {
       const { data: availabilityCheck } = await api.get(`/api/teachers/${id}/availability/check/`, {
@@ -173,8 +150,20 @@ export function TeacherProfile() {
       toast.error(detail || "Could not send booking request.");
     } finally {
       setBookingLoading(false);
+      setConfirmOpen(false);
     }
   };
+
+  const selectedSlotLabel = booking.start_at
+    ? new Date(booking.start_at).toLocaleString([], {
+        timeZone: viewerTz,
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "";
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>;
@@ -394,12 +383,40 @@ export function TeacherProfile() {
           </div>
         )}
 
+        {/* Intro video */}
+        {teacher.intro_video_url && (
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-[#1A3A35]/10 mb-8">
+            <h2 className="text-3xl font-bold text-[#1A3A35] mb-6" style={{ fontFamily: "Playfair Display, serif" }}>
+              Meet {teacher.full_name.split(" ")[0]}
+            </h2>
+            <div className="rounded-2xl bg-black overflow-hidden flex justify-center">
+              <video src={teacher.intro_video_url} controls className="w-full max-h-[420px] object-contain" />
+            </div>
+          </div>
+        )}
+
         {/* Availability + Booking Section */}
         <div id="book" className="grid md:grid-cols-3 gap-8 mb-8">
           <div className="md:col-span-2 bg-white rounded-2xl p-8 shadow-sm border border-[#1A3A35]/10">
-            <h2 className="text-2xl font-bold text-[#1A3A35] mb-4" style={{ fontFamily: "Playfair Display, serif" }}>
-              Availability
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="text-2xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
+                Availability
+              </h2>
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-gray-500 whitespace-nowrap">Show times in</Label>
+                <select
+                  value={viewerTz}
+                  onChange={(e) => setViewerTz(e.target.value)}
+                  className="rounded-lg px-2 py-1.5 text-xs bg-white border border-[#1A3A35]/15 focus:outline-none focus:ring-2 focus:ring-[#1A3A35]/20 max-w-[220px]"
+                >
+                  {tzOptions.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {formatTimezoneLabel(tz)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
             {availability.filter((a) => a.is_active).length > 0 ? (
               <div className="space-y-2">
                 {availability
@@ -428,7 +445,7 @@ export function TeacherProfile() {
               {user?.role === "teacher" ? (
                 <p className="text-sm text-gray-400">Switch to a learner account to book lessons.</p>
               ) : (
-                <form onSubmit={handleBook} className="space-y-3">
+                <form onSubmit={handleSubmit} className="space-y-3">
                   <div className="space-y-1">
                     <Label>Language</Label>
                     {teacher.languages.length > 0 ? (
@@ -488,7 +505,7 @@ export function TeacherProfile() {
                             </div>
                           ))}
                         </div>
-                        <p className="text-[11px] text-gray-400 mt-1">Times shown in your timezone ({viewerTz}).</p>
+                        <p className="text-[11px] text-gray-400 mt-1">Times shown in {viewerTz}. Change the timezone above.</p>
                       </>
                     )}
                   </div>
@@ -604,6 +621,25 @@ export function TeacherProfile() {
       <div className="mb-24">
         <Footer />
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Request this lesson?"
+        description={
+          <>
+            <p>
+              <strong>{booking.language_name}</strong> lesson with{" "}
+              <strong>{teacher.full_name}</strong>
+            </p>
+            <p className="mt-1">{selectedSlotLabel} ({viewerTz})</p>
+            <p className="mt-2 text-gray-500">The teacher will confirm your request.</p>
+          </>
+        }
+        confirmLabel="Send request"
+        loading={bookingLoading}
+        onConfirm={doBooking}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

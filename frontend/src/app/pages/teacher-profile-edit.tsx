@@ -390,6 +390,7 @@ export function TeacherProfileEdit() {
 
               <div className="space-y-1">
                 <Label>Profile photo</Label>
+                <p className="text-xs text-gray-400">A still headshot shown as your avatar across the site.</p>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16 cursor-pointer" onClick={() => photoInputRef.current?.click()}>
                     <AvatarImage src={form.profile_photo_url} />
@@ -416,8 +417,11 @@ export function TeacherProfileEdit() {
               </div>
               <div className="space-y-1">
                 <Label>Intro video</Label>
+                <p className="text-xs text-gray-400">A short clip (MP4/MOV/WebM) learners can watch on your profile — not your photo.</p>
                 {form.intro_video_url && (
-                  <video src={form.intro_video_url} controls className="w-full rounded-xl bg-black mb-2" />
+                  <div className="rounded-xl bg-black overflow-hidden mb-2 flex justify-center">
+                    <video src={form.intro_video_url} controls className="w-full max-h-[320px] object-contain" />
+                  </div>
                 )}
                 <div className="flex items-center gap-2">
                   <Input

@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { motion } from "motion/react";
 import { Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { COUNTRY_CODES } from "@/lib/countryCodes";
 import type { OnboardingData } from "../../pages/teacher-onboarding";
 
 interface StepProps {
@@ -130,12 +131,18 @@ export function StepPersonalInfo({ formData, updateFormData }: StepProps) {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-[#1A3A35] mb-2">Country</label>
-          <input
+          <select
             value={formData.country}
             onChange={(e) => updateFormData({ country: e.target.value })}
-            placeholder="e.g., Kenya"
             className="w-full px-4 py-3 bg-white border border-[#EDE7D9] rounded-xl focus:outline-none focus:border-[#1A3A35]"
-          />
+          >
+            <option value="">Select your country</option>
+            {COUNTRY_CODES.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-[#1A3A35] mb-2">City</label>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import AIAssistant from "../components/AIAssistant";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import { buildGoogleCalendarUrl } from "@/lib/googleCalendar";
@@ -140,6 +141,7 @@ function BookingCard({
 }) {
   const [meetingLink, setMeetingLink] = useState("");
   const [confirming, setConfirming] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
     <div className="py-3 border-b last:border-0 space-y-2">
@@ -196,7 +198,7 @@ function BookingCard({
               placeholder="Zoom / Google Meet / WhatsApp link (optional)"
               className="text-xs h-8"
             />
-            <Button size="sm" className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white h-8 text-xs shrink-0" onClick={() => onConfirm(meetingLink)}>
+            <Button size="sm" className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white h-8 text-xs shrink-0" onClick={() => setConfirmOpen(true)}>
               Confirm
             </Button>
             <Button size="sm" variant="ghost" className="h-8 text-xs shrink-0" onClick={() => setConfirming(false)}>
@@ -209,6 +211,32 @@ function BookingCard({
           </Button>
         ))}
       {booking.status === "confirmed" && <LessonResourcesPanel booking={booking} libraryResources={libraryResources} />}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirm this lesson?"
+        description={
+          <>
+            <p>
+              <strong>{booking.language_name}</strong> lesson with{" "}
+              <strong>{booking.learner_name}</strong>
+            </p>
+            <p className="mt-1">{new Date(booking.start_at).toLocaleString()}</p>
+            {meetingLink ? (
+              <p className="mt-2 text-gray-500 break-all">Meeting link: {meetingLink}</p>
+            ) : (
+              <p className="mt-2 text-gray-500">A Google Meet link is created automatically if your calendar is connected.</p>
+            )}
+            <p className="mt-2 text-gray-500">The learner will be notified.</p>
+          </>
+        }
+        confirmLabel="Confirm lesson"
+        onConfirm={() => {
+          onConfirm?.(meetingLink);
+          setConfirmOpen(false);
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

@@ -5,19 +5,18 @@ import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/button";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import { useAuth } from "../context/auth-context";
+import { landingPathForUser } from "@/lib/landing";
 import type { User } from "@/types";
 import lulimiLogoBlack from "@/assets/lulimi-logo-black.png";
 
-function routeForUser(user: User, navigate: ReturnType<typeof useNavigate>, from?: string) {
+async function routeForUser(user: User, navigate: ReturnType<typeof useNavigate>, from?: string) {
   // If the user was sent here mid-flow (e.g. booking a specific teacher), take
   // them back where they came from instead of the generic dashboard.
   if (from) {
     navigate(from);
     return;
   }
-  if (user.role === "teacher") navigate("/teacher/dashboard");
-  else if (user.role === "admin") navigate("/");
-  else navigate("/learner/dashboard");
+  navigate(await landingPathForUser(user));
 }
 
 export function SignIn() {
@@ -44,7 +43,7 @@ export function SignIn() {
     try {
       const user = await signIn(email, password);
       toast.success("Welcome back!");
-      routeForUser(user, navigate, from);
+      await routeForUser(user, navigate, from);
     } catch {
       setError("Invalid email or password.");
     } finally {

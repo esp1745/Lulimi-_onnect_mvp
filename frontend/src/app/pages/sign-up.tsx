@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import { useAuth } from "../context/auth-context";
+import { landingPathForUser } from "@/lib/landing";
 import type { User } from "@/types";
 import lulimiLogoBlack from "@/assets/lulimi-logo-black.png";
 
@@ -69,9 +70,9 @@ export function SignUp() {
     }
   };
 
-  const handleGoogleSuccess = (user: User) => {
+  const handleGoogleSuccess = async (user: User) => {
     toast.success("Account ready!");
-    navigate(next || (user.role === "teacher" ? "/teacher/onboarding" : "/"));
+    navigate(next || (await landingPathForUser(user)));
   };
 
   return (

@@ -66,8 +66,10 @@ export interface Teacher {
   price: string | null
   profile_photo_url: string
   intro_audio_url: string
+  intro_video_url?: string
   whatsapp_number: string
   region: string
+  city?: string
   institution: string
   professional_role: string
   education: EducationEntry[]

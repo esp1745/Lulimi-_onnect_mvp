@@ -104,7 +104,13 @@ export function StepIntroVideo({ formData, updateFormData }: StepProps) {
       />
 
       {formData.introVideoUrl && (
-        <video src={formData.introVideoUrl} controls className="w-full rounded-2xl mb-4 bg-black" />
+        <div className="mb-4 rounded-2xl bg-black overflow-hidden flex justify-center">
+          <video
+            src={formData.introVideoUrl}
+            controls
+            className="w-full max-h-[360px] object-contain"
+          />
+        </div>
       )}
 
       <div className="border-2 border-dashed border-[#1A3A35]/20 rounded-2xl py-14 flex flex-col items-center justify-center gap-4 mb-8">
