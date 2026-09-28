@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import api from "@/lib/api";
 import type { Notification } from "@/types";
 
@@ -6,6 +8,8 @@ export default function NotificationsDropdown() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  /** The notification opened in the full-message popup, if any. */
+  const [selected, setSelected] = useState<Notification | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
@@ -31,6 +35,22 @@ export default function NotificationsDropdown() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelected(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selected]);
+
+  /** Open the full message, and mark it read on the way in. */
+  const openNotification = (n: Notification) => {
+    setSelected(n);
+    setOpen(false);
+    if (!n.read_at) markRead(n.id);
+  };
 
   const markAllRead = async () => {
     try {
@@ -87,14 +107,22 @@ export default function NotificationsDropdown() {
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  onClick={() => !n.read_at && markRead(n.id)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openNotification(n)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      openNotification(n);
+                    }
+                  }}
                   className={`px-4 py-3 cursor-pointer hover:bg-[#1A3A35]/5 transition-colors ${!n.read_at ? "bg-[#1A3A35]/5" : ""}`}
                 >
                   <div className="flex items-start gap-2">
                     {!n.read_at && <span className="mt-1.5 h-2 w-2 rounded-full bg-[#C4622D] shrink-0" />}
                     <div className={!n.read_at ? "" : "pl-4"}>
                       <p className="text-sm font-medium text-[#1A3A35]">{n.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</p>
                       <p className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</p>
                     </div>
                   </div>
@@ -104,6 +132,43 @@ export default function NotificationsDropdown() {
           </div>
         </div>
       )}
+
+      {/* Clicking a notification opens the whole message, with an X to close.
+          Portalled to <body>: the sticky header's backdrop-blur creates a
+          containing block, which would otherwise clip a fixed overlay. */}
+      {selected &&
+        createPortal(
+          <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#1A3A35]/40 backdrop-blur-sm px-4"
+          onClick={() => setSelected(null)}
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={selected.title}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md bg-white rounded-2xl shadow-xl border border-[#1A3A35]/10 p-6 text-left"
+          >
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              aria-label="Close notification"
+              className="absolute top-3 right-3 p-1.5 rounded-full text-gray-400 hover:text-[#1A3A35] hover:bg-[#1A3A35]/5 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <p className="text-xs uppercase tracking-wide text-[#C4622D] font-bold mb-2 pr-8">
+              {selected.notification_type.replace(/_/g, " ")}
+            </p>
+            <h3 className="text-lg font-bold text-[#1A3A35] mb-2 pr-8">{selected.title}</h3>
+            <p className="text-sm text-gray-600 whitespace-pre-line">{selected.body}</p>
+            <p className="text-xs text-gray-400 mt-4">{new Date(selected.created_at).toLocaleString()}</p>
+          </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

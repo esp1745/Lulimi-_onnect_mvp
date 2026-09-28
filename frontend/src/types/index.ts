@@ -5,6 +5,10 @@ export interface User {
   role: 'teacher' | 'learner' | 'admin'
   country: string
   timezone: string
+  /** Profile photo from the teacher/learner profile, '' when none is set. */
+  avatar_url: string
+  /** Teachers: published. Learners: finished learner onboarding. */
+  onboarding_completed: boolean
   created_at: string
 }
 
@@ -110,6 +114,8 @@ export interface Booking {
   teacher_whatsapp_number: string
   learner: number
   learner_name: string
+  /** Who attends — the learner, or the person they booked on behalf of. */
+  student_name: string
   language_name: string
   start_at: string
   end_at: string
@@ -259,4 +265,16 @@ export interface AIChatResponse {
   status: "ok" | "confirm_required"
   messages: AIChatMessage[]
   confirmation?: AIChatConfirmation
+}
+
+export interface LearnerProfile {
+  id: number
+  goals: string
+  proficiency_level: '' | 'beginner' | 'intermediate' | 'advanced'
+  profile_photo_url: string
+  booking_for_someone_else: boolean
+  student_name: string
+  display_student_name: string
+  onboarding_completed: boolean
+  created_at: string
 }

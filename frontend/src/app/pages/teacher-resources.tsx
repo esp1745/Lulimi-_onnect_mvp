@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
-import { TeacherSubNav } from "../components/TeacherSubNav";
+import { DashboardHeader } from "../components/DashboardHeader";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -144,19 +144,15 @@ export function TeacherResources() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-3xl mx-auto w-full px-6 py-10 space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
-              Resources
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">Upload and manage your teaching materials.</p>
-          </div>
-          <Button className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white rounded-full" onClick={() => setAdding(true)}>
-            + Add resource
-          </Button>
-        </div>
-
-        <TeacherSubNav />
+        <DashboardHeader
+          title="Resources"
+          subtitle="Upload and manage your teaching materials."
+          action={
+            <Button className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white rounded-full" onClick={() => setAdding(true)}>
+              + Add resource
+            </Button>
+          }
+        />
 
         {adding && (
           <Card>

@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import AIAssistant from "../components/AIAssistant";
-import { TeacherSubNav } from "../components/TeacherSubNav";
+import { DashboardHeader } from "../components/DashboardHeader";
+import { PackagesCard } from "../components/PackagesCard";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import { buildGoogleCalendarUrl } from "@/lib/googleCalendar";
@@ -146,7 +147,10 @@ function BookingCard({
     <div className="py-3 border-b last:border-0 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium text-sm text-[#1A3A35]">{booking.learner_name}</p>
+          <p className="font-medium text-sm text-[#1A3A35]">{booking.student_name || booking.learner_name}</p>
+          {booking.student_name && booking.student_name !== booking.learner_name && (
+            <p className="text-xs text-gray-400">Booked by {booking.learner_name}</p>
+          )}
           <p className="text-xs text-gray-500">
             {booking.language_name} · {new Date(booking.start_at).toLocaleString()}
           </p>
@@ -237,7 +241,10 @@ function NotesCard({ booking, onSaved, libraryResources }: { booking: Booking; o
     <div className="py-3 border-b last:border-0 space-y-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium text-sm text-[#1A3A35]">{booking.learner_name}</p>
+          <p className="font-medium text-sm text-[#1A3A35]">{booking.student_name || booking.learner_name}</p>
+          {booking.student_name && booking.student_name !== booking.learner_name && (
+            <p className="text-xs text-gray-400">Booked by {booking.learner_name}</p>
+          )}
           <p className="text-xs text-gray-500">
             {booking.language_name} · {new Date(booking.start_at).toLocaleString()}
           </p>
@@ -346,15 +353,10 @@ export function TeacherDashboard() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-5xl mx-auto w-full px-6 py-10">
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
-              Welcome, {user?.full_name?.split(" ")[0]}
-            </h1>
-            <p className="text-gray-500 text-sm">Your teaching dashboard</p>
-          </div>
-          <TeacherSubNav />
-        </div>
+        <DashboardHeader
+          title={`Welcome, ${user?.full_name?.split(" ")[0] ?? ""}`}
+          subtitle="Your teaching dashboard"
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
@@ -419,6 +421,12 @@ export function TeacherDashboard() {
               </CardContent>
             </Card>
           )}
+
+          {/* Same packages manager as the edit-profile page, here because the
+              dashboard is where teachers actually spend their time. */}
+          <div className="md:col-span-2">
+            <PackagesCard description="Bundles shown on your public profile. Booking still happens one lesson at a time." />
+          </div>
 
           {students.length > 0 && (
             <Card className="md:col-span-2">

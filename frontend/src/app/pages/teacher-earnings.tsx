@@ -7,7 +7,7 @@ import { Footer } from "../components/footer";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
-import { TeacherSubNav } from "../components/TeacherSubNav";
+import { DashboardHeader } from "../components/DashboardHeader";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import type { TeacherEarnings as TeacherEarningsData } from "@/types";
@@ -74,13 +74,7 @@ export function TeacherEarnings() {
     <div className="min-h-screen bg-[#F5F0E8] flex flex-col">
       <Navigation />
       <div className="max-w-5xl mx-auto w-full px-6 py-10 flex-1">
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1A3A35]">Earnings</h1>
-            <p className="text-gray-500 text-sm">What you've made teaching on Lulimi</p>
-          </div>
-          <TeacherSubNav />
-        </div>
+        <DashboardHeader title="Earnings" subtitle="What you've made teaching on Lulimi" />
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

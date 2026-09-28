@@ -17,7 +17,7 @@ export function StepGoLive({ formData, goToStep }: StepGoLiveProps) {
     text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
 
   // Each row previews exactly what was entered in that step.
-  const checklist = [
+  const checklist: { step: number; title: string; summary: string[]; thumbnail?: string }[] = [
     {
       step: 1,
       title: "Personal information",
@@ -27,8 +27,9 @@ export function StepGoLive({ formData, goToStep }: StepGoLiveProps) {
         [formData.city, formData.country].filter(Boolean).join(", "),
         formData.headline,
         formData.bio && truncate(formData.bio),
-        formData.photoUrl ? "✓ Profile photo added" : "",
+        formData.photoUrl ? "" : "No profile photo yet",
       ].filter(Boolean) as string[],
+      thumbnail: formData.photoUrl,
     },
     {
       step: 2,
@@ -92,9 +93,19 @@ export function StepGoLive({ formData, goToStep }: StepGoLiveProps) {
 
       <div className="bg-white rounded-2xl p-6 border border-[#1A3A35]/10 flex flex-col sm:flex-row items-center justify-between gap-6 mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-xl bg-[#C4622D] flex items-center justify-center text-white text-2xl font-semibold flex-shrink-0">
-            {initials}
-          </div>
+          {/* Show the photo they actually uploaded — initials are only the
+              fallback for a profile that still hasn't got one. */}
+          {formData.photoUrl ? (
+            <img
+              src={formData.photoUrl}
+              alt="Your profile photo"
+              className="w-20 h-20 rounded-xl object-cover bg-[#C4622D] flex-shrink-0"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-xl bg-[#C4622D] flex items-center justify-center text-white text-2xl font-semibold flex-shrink-0">
+              {initials}
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
               <span>
@@ -142,6 +153,13 @@ export function StepGoLive({ formData, goToStep }: StepGoLiveProps) {
                     <CheckCircle2 className="w-5 h-5 text-[#A0B76F] flex-shrink-0 mt-0.5" />
                   ) : (
                     <AlertCircle className="w-5 h-5 text-[#E8922A] flex-shrink-0 mt-0.5" />
+                  )}
+                  {item.thumbnail && (
+                    <img
+                      src={item.thumbnail}
+                      alt="Profile photo preview"
+                      className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                    />
                   )}
                   <div className="min-w-0">
                     <div className="font-medium text-[#1A3A35]">{item.title}</div>

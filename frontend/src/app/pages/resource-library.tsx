@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
 import { tabClass } from "../components/TeacherSubNav";
+import { DashboardHeader } from "../components/DashboardHeader";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import api from "@/lib/api";
+import { useAuth } from "../context/auth-context";
 import type { Resource } from "@/types";
 
 const ZAMBIAN_LANGUAGES = ["Bemba", "Nyanja", "Tonga", "Lozi", "Kaonde", "Luvale", "Lunda", "Tumbuka"];
@@ -19,6 +21,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export function ResourceLibrary() {
+  const { user } = useAuth();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState("");
@@ -37,12 +40,21 @@ export function ResourceLibrary() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-3xl mx-auto w-full px-6 py-10 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
-            Resource library
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Free vocabulary lists, audio, and lesson materials shared publicly by our teachers.</p>
-        </div>
+        {/* This page is public, but it's also one of the signed-in nav tabs —
+            so signed-in visitors get the same header as every other section. */}
+        {user ? (
+          <DashboardHeader
+            title="Resource library"
+            subtitle="Free vocabulary lists, audio, and lesson materials shared publicly by our teachers."
+          />
+        ) : (
+          <div>
+            <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
+              Resource library
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">Free vocabulary lists, audio, and lesson materials shared publicly by our teachers.</p>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <button

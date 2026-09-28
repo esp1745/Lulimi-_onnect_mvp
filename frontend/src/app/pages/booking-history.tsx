@@ -3,7 +3,8 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
-import { RoleSubNav, tabClass } from "../components/TeacherSubNav";
+import { tabClass } from "../components/TeacherSubNav";
+import { DashboardHeader } from "../components/DashboardHeader";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
@@ -56,16 +57,10 @@ export function BookingHistory() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-3xl mx-auto w-full px-6 py-10 space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
-              Booking history
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">Every lesson {isTeacher ? "you've taught or been asked to teach" : "you've booked"}.</p>
-          </div>
-        </div>
-
-        <RoleSubNav />
+        <DashboardHeader
+          title="Booking history"
+          subtitle={`Every lesson ${isTeacher ? "you've taught or been asked to teach" : "you've booked"}.`}
+        />
 
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map((s) => (
@@ -92,7 +87,12 @@ export function BookingHistory() {
                 {bookings.map((b) => (
                   <div key={b.id} className="px-5 py-4 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium text-sm text-[#1A3A35]">{isTeacher ? b.learner_name : b.teacher_name}</p>
+                      <p className="font-medium text-sm text-[#1A3A35]">
+                        {isTeacher ? b.student_name || b.learner_name : b.teacher_name}
+                      </p>
+                      {isTeacher && b.student_name && b.student_name !== b.learner_name && (
+                        <p className="text-xs text-gray-400">Booked by {b.learner_name}</p>
+                      )}
                       <p className="text-xs text-gray-500">
                         {b.language_name} · {new Date(b.start_at).toLocaleString()}
                       </p>

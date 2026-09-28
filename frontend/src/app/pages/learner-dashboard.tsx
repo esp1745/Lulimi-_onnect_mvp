@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
 import AIAssistant from "../components/AIAssistant";
 import { PaymentModal } from "../components/PaymentModal";
-import { LearnerSubNav } from "../components/TeacherSubNav";
+import { DashboardHeader } from "../components/DashboardHeader";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import { buildGoogleCalendarUrl } from "@/lib/googleCalendar";
@@ -255,15 +255,28 @@ export function LearnerDashboard() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-5xl mx-auto w-full px-6 py-10">
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
-              Welcome, {user?.full_name?.split(" ")[0]}
-            </h1>
-            <p className="text-gray-500 text-sm">Your learning dashboard</p>
+        <DashboardHeader
+          title={`Welcome, ${user?.full_name?.split(" ")[0] ?? ""}`}
+          subtitle="Your learning dashboard"
+        />
+
+        {/* Skipping onboarding is allowed, but teachers get far less to work
+            with — so the way back stays visible until it's done. */}
+        {user && !user.onboarding_completed && (
+          <div className="mb-6 rounded-2xl border border-[#A0B76F] bg-[#A0B76F]/15 px-5 py-4 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-bold text-[#1A3A35] text-sm">Your profile isn't finished</p>
+              <p className="text-xs text-[#1A3A35]/70 mt-0.5">
+                Add a photo and your goal so teachers know who they're meeting.
+              </p>
+            </div>
+            <Link to="/learner/onboarding">
+              <Button size="sm" className="rounded-full bg-[#1A3A35] hover:bg-[#2D5A45] text-white font-bold">
+                Finish setting up
+              </Button>
+            </Link>
           </div>
-          <LearnerSubNav />
-        </div>
+        )}
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card>

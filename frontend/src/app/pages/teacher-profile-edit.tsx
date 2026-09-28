@@ -12,7 +12,8 @@ import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import PhoneNumberInput from "../components/PhoneNumberInput";
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
-import { TeacherSubNav } from "../components/TeacherSubNav";
+import { PackagesCard } from "../components/PackagesCard";
+import { DashboardHeader } from "../components/DashboardHeader";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import { COUNTRY_CODES } from "@/lib/countryCodes";
@@ -50,7 +51,6 @@ export function TeacherProfileEdit() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [newLang, setNewLang] = useState({ language_name: "", proficiency_type: "fluent" });
-  const [newPackage, setNewPackage] = useState({ title: "", description: "", hours: "", price: "", savings: "" });
   const photoInputRef = useRef<HTMLInputElement>(null);
   // `country` lives on the User record, so it's saved separately from the rest.
   const [country, setCountry] = useState("");
@@ -186,33 +186,6 @@ export function TeacherProfileEdit() {
     }
   };
 
-  const handleAddPackage = async () => {
-    if (!newPackage.title.trim() || !newPackage.hours || !newPackage.price) return;
-    try {
-      await api.post("/api/teachers/packages/", {
-        title: newPackage.title,
-        description: newPackage.description,
-        hours: newPackage.hours,
-        price: newPackage.price,
-        savings: newPackage.savings || null,
-      });
-      await refreshTeacher();
-      setNewPackage({ title: "", description: "", hours: "", price: "", savings: "" });
-      toast.success("Package added.");
-    } catch {
-      toast.error("Could not add package.");
-    }
-  };
-
-  const handleRemovePackage = async (id: number) => {
-    try {
-      await api.delete(`/api/teachers/packages/${id}/`);
-      await refreshTeacher();
-    } catch {
-      toast.error("Could not remove package.");
-    }
-  };
-
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -260,25 +233,24 @@ export function TeacherProfileEdit() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-2xl mx-auto w-full px-6 py-10 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
-            Edit profile
-          </h1>
-          <div className="flex items-center gap-3">
-            {teacher?.approval_status && (
-              <Badge variant="outline" className="capitalize">
-                {teacher.approval_status}
-              </Badge>
-            )}
-            {teacher?.approval_status !== "approved" && (
-              <Button size="sm" className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full" onClick={handlePublish}>
-                Submit for review
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <TeacherSubNav />
+        <DashboardHeader
+          title="Edit profile"
+          subtitle="What learners see on your public profile."
+          action={
+            <>
+              {teacher?.approval_status && (
+                <Badge variant="outline" className="capitalize">
+                  {teacher.approval_status}
+                </Badge>
+              )}
+              {teacher?.approval_status !== "approved" && (
+                <Button size="sm" className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full" onClick={handlePublish}>
+                  Submit for review
+                </Button>
+              )}
+            </>
+          }
+        />
 
         <Card>
           <CardHeader>
@@ -578,70 +550,11 @@ export function TeacherProfileEdit() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Packages</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {teacher?.packages && teacher.packages.length > 0 && (
-              <div className="space-y-2">
-                {teacher.packages.map((p) => (
-                  <div key={p.id} className="flex items-start justify-between gap-3 rounded-xl border border-[#1A3A35]/10 p-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#1A3A35]">
-                        {p.title} · {p.hours}h · ${p.price}
-                        {p.savings && <span className="text-[#2D5A45]"> (save ${p.savings})</span>}
-                      </p>
-                      {p.description && <p className="text-xs text-gray-500 mt-1">{p.description}</p>}
-                    </div>
-                    <button onClick={() => handleRemovePackage(p.id)} className="text-gray-400 hover:text-red-500 shrink-0">
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                value={newPackage.title}
-                onChange={(e) => setNewPackage((p) => ({ ...p, title: e.target.value }))}
-                placeholder="e.g. 10-hour package"
-                className="col-span-2"
-              />
-              <Input
-                value={newPackage.description}
-                onChange={(e) => setNewPackage((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Description (optional)"
-                className="col-span-2"
-              />
-              <Input
-                type="number"
-                min={1}
-                value={newPackage.hours}
-                onChange={(e) => setNewPackage((p) => ({ ...p, hours: e.target.value }))}
-                placeholder="Hours"
-              />
-              <Input
-                type="number"
-                min={0}
-                value={newPackage.price}
-                onChange={(e) => setNewPackage((p) => ({ ...p, price: e.target.value }))}
-                placeholder="Price ($)"
-              />
-              <Input
-                type="number"
-                min={0}
-                value={newPackage.savings}
-                onChange={(e) => setNewPackage((p) => ({ ...p, savings: e.target.value }))}
-                placeholder="Savings ($, optional)"
-                className="col-span-2"
-              />
-            </div>
-            <Button type="button" onClick={handleAddPackage} className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white rounded-full">
-              Add package
-            </Button>
-          </CardContent>
-        </Card>
+        <PackagesCard
+          packages={teacher?.packages ?? []}
+          onChanged={refreshTeacher}
+          description="Informational bundles shown on your public profile. Booking still happens one lesson at a time."
+        />
 
         <GoogleCalendarCard
           connectedDescription="Confirmed lessons automatically get a Google Meet link and show up on your calendar."

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
@@ -63,13 +63,16 @@ const steps = [
 ];
 
 export function TeacherOnboarding() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [furthestStepReached, setFurthestStepReached] = useState(1);
   const [isPublished, setIsPublished] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
+  // "Save & exit" signs out on purpose, so the sign-up gate below must not
+  // treat the resulting empty session as a stranger wandering in.
+  const exitingRef = useRef(false);
   const [formData, setFormData] = useState<OnboardingData>({
     firstName: "",
     lastName: "",
@@ -104,7 +107,7 @@ export function TeacherOnboarding() {
   // Onboarding needs an account: it's where the draft is saved and how you get
   // back in later. Send visitors to sign up first, then straight back here.
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || exitingRef.current) return;
     if (!user) {
       navigate("/signup?role=teacher", { replace: true });
     } else if (user.role !== "teacher") {
@@ -180,14 +183,18 @@ export function TeacherOnboarding() {
     return () => clearTimeout(handle);
   }, [formData, user]);
 
-  /** Save & exit — persist the draft first, then leave. */
-  const handleSaveAndExit = () => {
+  /** Save & exit — keep the draft, sign out, and land back on the home page.
+   *  "Exit" has to mean exit: staying signed in just bounced you straight
+   *  into the dashboard, which is the opposite of leaving. */
+  const handleSaveAndExit = async () => {
+    exitingRef.current = true;
     if (user && saveDraft(user.id, formData)) {
       toast.success("Progress saved. Sign back in any time to pick up where you left off.");
     } else {
       toast.error("Couldn't save your progress in this browser. Finish now, or publish what you have.");
     }
-    navigate("/");
+    await signOut();
+    navigate("/", { replace: true });
   };
 
   // Only the fields the backend actually requires to publish (headline, bio,

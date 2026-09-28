@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Button } from "./ui/button";
 import NotificationsDropdown from "./NotificationsDropdown";
+import { UserAvatar } from "./UserAvatar";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import lulimiLogo from "@/assets/lulimi-logo.png";
@@ -53,17 +54,12 @@ function profilePath(role: string) {
 export function Navigation() {
   const { user } = useAuth();
 
-  const initials = user?.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
   return (
     <header className="sticky top-0 z-40 bg-[#F5F0E8]/95 backdrop-blur border-b border-[#1A3A35]/10">
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/">
+        {/* Signed in, the logo is the fastest way back to your own space;
+            signed out it's the marketing home page. */}
+        <Link to={user ? dashboardPath(user.role) : "/"} aria-label={user ? "Dashboard" : "Home"}>
           <img src={lulimiLogo} alt="Lulimi" className="h-9 w-auto" />
         </Link>
 
@@ -112,9 +108,9 @@ export function Navigation() {
                 to={profilePath(user.role)}
                 title="Your profile"
                 aria-label="Your profile"
-                className="w-9 h-9 rounded-full bg-[#A0B76F] flex items-center justify-center text-[#1A3A35] text-sm font-bold hover:bg-[#8aa55a] transition-colors"
+                className="rounded-full hover:ring-2 hover:ring-[#A0B76F] transition-all"
               >
-                {initials}
+                <UserAvatar user={user} size={36} />
               </Link>
             </>
           ) : (

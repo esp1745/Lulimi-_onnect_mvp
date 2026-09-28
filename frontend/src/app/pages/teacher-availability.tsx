@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
-import { TeacherSubNav } from "../components/TeacherSubNav";
+import { DashboardHeader } from "../components/DashboardHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -104,19 +104,15 @@ export function TeacherAvailability() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-2xl mx-auto w-full px-6 py-10 space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
-              Availability
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">Set the weekly time slots when you are available to teach.</p>
-          </div>
-          <Button className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white rounded-full" onClick={() => setAdding(true)}>
-            + Add slot
-          </Button>
-        </div>
-
-        <TeacherSubNav />
+        <DashboardHeader
+          title="Availability"
+          subtitle="Set the weekly time slots when you are available to teach."
+          action={
+            <Button className="bg-[#1A3A35] hover:bg-[#2D5A45] text-white rounded-full" onClick={() => setAdding(true)}>
+              + Add slot
+            </Button>
+          }
+        />
 
         {adding && (
           <Card>

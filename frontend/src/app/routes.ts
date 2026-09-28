@@ -9,6 +9,7 @@ import { TeacherAvailability } from "./pages/teacher-availability";
 import { TeacherResources } from "./pages/teacher-resources";
 import { TeacherEarnings } from "./pages/teacher-earnings";
 import { LearnerDashboard } from "./pages/learner-dashboard";
+import { LearnerOnboarding } from "./pages/learner-onboarding";
 import { LearnerProfile } from "./pages/learner-profile";
 import { Messages } from "./pages/messages";
 import { MessageThread } from "./pages/message-thread";
@@ -68,6 +69,10 @@ export const router = createBrowserRouter([
   {
     path: "/teacher/:id",
     Component: TeacherProfile,
+  },
+  {
+    path: "/learner/onboarding",
+    Component: LearnerOnboarding,
   },
   {
     path: "/learner/dashboard",

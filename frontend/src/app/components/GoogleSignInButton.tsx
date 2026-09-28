@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../context/auth-context";
+import { GoogleIcon } from "./google-icon";
 import type { User } from "@/types";
 
 interface GoogleCredentialResponse {
@@ -21,6 +22,34 @@ declare global {
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const SCRIPT_SRC = "https://accounts.google.com/gsi/client";
 
+/**
+ * Google's own button can't render without a client id, and Google's script
+ * can be blocked by an extension or a flaky network. Either way the sign-in
+ * area must not silently collapse to nothing — this stands in and explains
+ * what's missing instead.
+ */
+function GoogleButtonPlaceholder({ role }: { role?: "teacher" | "learner" }) {
+  const explain = () => {
+    toast.error(
+      GOOGLE_CLIENT_ID
+        ? "Google sign-in couldn't load. Check your connection or any ad blocker, then reload."
+        : "Google sign-in isn't set up yet. Add VITE_GOOGLE_CLIENT_ID (frontend) and GOOGLE_OAUTH_CLIENT_ID (backend), then restart.",
+      { duration: 6000 }
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={explain}
+      className="w-full h-12 rounded-full border border-[#1A3A35]/20 bg-white text-[#1A3A35] font-semibold text-sm flex items-center justify-center gap-3 hover:bg-[#A0B76F]/10 hover:border-[#A0B76F] transition-colors"
+    >
+      <GoogleIcon className="w-5 h-5" />
+      {role ? "Sign up with Google" : "Sign in with Google"}
+    </button>
+  );
+}
+
 export default function GoogleSignInButton({
   role,
   onSuccess,
@@ -30,6 +59,7 @@ export default function GoogleSignInButton({
 }) {
   const { signInWithGoogle } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [rendered, setRendered] = useState(false);
   const onSuccessRef = useRef(onSuccess);
   onSuccessRef.current = onSuccess;
 
@@ -60,6 +90,7 @@ export default function GoogleSignInButton({
         width: "100%",
         text: role ? "signup_with" : "signin_with",
       });
+      setRendered(true);
     };
 
     const existingScript = document.querySelector(`script[src="${SCRIPT_SRC}"]`);
@@ -78,7 +109,12 @@ export default function GoogleSignInButton({
     return () => script.removeEventListener("load", renderButton);
   }, [role, signInWithGoogle]);
 
-  if (!GOOGLE_CLIENT_ID) return null;
+  if (!GOOGLE_CLIENT_ID) return <GoogleButtonPlaceholder role={role} />;
 
-  return <div ref={containerRef} className="w-full flex justify-center" />;
+  return (
+    <>
+      <div ref={containerRef} className="w-full flex justify-center" />
+      {!rendered && <GoogleButtonPlaceholder role={role} />}
+    </>
+  );
 }

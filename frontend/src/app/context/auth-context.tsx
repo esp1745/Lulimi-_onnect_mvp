@@ -17,6 +17,8 @@ interface AuthContextValue {
   signUp: (params: RegisterParams) => Promise<User>;
   signInWithGoogle: (credential: string, role?: "teacher" | "learner") => Promise<User>;
   signOut: () => Promise<void>;
+  /** Re-read /me — call after anything that changes the photo or onboarding state. */
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -70,6 +72,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.user as User;
   };
 
+  const refreshUser = async () => {
+    if (!Cookies.get("access_token")) return;
+    try {
+      const me = await api.get("/api/auth/me/");
+      setUser(me.data);
+    } catch {
+      /* keep the user we have; a failed refresh shouldn't sign anyone out */
+    }
+  };
+
   const signOut = async () => {
     const refresh = Cookies.get("refresh_token");
     if (refresh) await api.post("/api/auth/logout/", { refresh }).catch(() => {});
@@ -78,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithGoogle, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

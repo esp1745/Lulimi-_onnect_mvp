@@ -9,6 +9,15 @@ class BookingSerializer(serializers.ModelSerializer):
     teacher_whatsapp_number = serializers.CharField(source='teacher.whatsapp_number', read_only=True)
     payment_status = serializers.SerializerMethodField()
     payment_amount = serializers.SerializerMethodField()
+    student_name = serializers.SerializerMethodField()
+
+    def get_student_name(self, obj):
+        """Who is actually attending — the account holder, or the child /
+        relative they booked on behalf of."""
+        profile = getattr(obj.learner, 'learner_profile', None)
+        if profile and profile.booking_for_someone_else and profile.student_name:
+            return profile.student_name
+        return obj.learner.full_name
 
     def get_payment_status(self, obj):
         """'unpaid' when no payment row exists yet, else the payment's status."""
@@ -23,6 +32,7 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             'id', 'teacher', 'teacher_name', 'teacher_user_id', 'teacher_whatsapp_number', 'learner', 'learner_name',
+            'student_name',
             'language_name', 'start_at', 'end_at', 'timezone_snapshot',
             'status', 'external_meeting_link', 'learner_whatsapp_number', 'teacher_notes', 'learner_notes',
             'payment_status', 'payment_amount',
