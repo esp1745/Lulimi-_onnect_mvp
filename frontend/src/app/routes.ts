@@ -7,6 +7,7 @@ import { TeacherProfileEdit } from "./pages/teacher-profile-edit";
 import { TeacherDashboard } from "./pages/teacher-dashboard";
 import { TeacherAvailability } from "./pages/teacher-availability";
 import { TeacherResources } from "./pages/teacher-resources";
+import { TeacherEarnings } from "./pages/teacher-earnings";
 import { LearnerDashboard } from "./pages/learner-dashboard";
 import { LearnerProfile } from "./pages/learner-profile";
 import { Messages } from "./pages/messages";
@@ -18,6 +19,18 @@ import { SignIn } from "./pages/sign-in";
 import { SignUp } from "./pages/sign-up";
 import { ForgotPassword } from "./pages/forgot-password";
 import { ResetPassword } from "./pages/reset-password";
+import {
+  HowItWorks,
+  Pricing,
+  Contact,
+  TeacherFaq,
+  Community,
+  Blog,
+  Careers,
+  Privacy,
+  Terms,
+  Cookie,
+} from "./pages/info-pages";
 
 export const router = createBrowserRouter([
   {
@@ -47,6 +60,10 @@ export const router = createBrowserRouter([
   {
     path: "/teacher/resources",
     Component: TeacherResources,
+  },
+  {
+    path: "/teacher/earnings",
+    Component: TeacherEarnings,
   },
   {
     path: "/teacher/:id",
@@ -79,6 +96,46 @@ export const router = createBrowserRouter([
   {
     path: "/about",
     Component: About,
+  },
+  {
+    path: "/how-it-works",
+    Component: HowItWorks,
+  },
+  {
+    path: "/pricing",
+    Component: Pricing,
+  },
+  {
+    path: "/contact",
+    Component: Contact,
+  },
+  {
+    path: "/teacher-faq",
+    Component: TeacherFaq,
+  },
+  {
+    path: "/community",
+    Component: Community,
+  },
+  {
+    path: "/blog",
+    Component: Blog,
+  },
+  {
+    path: "/careers",
+    Component: Careers,
+  },
+  {
+    path: "/privacy",
+    Component: Privacy,
+  },
+  {
+    path: "/terms",
+    Component: Terms,
+  },
+  {
+    path: "/cookie",
+    Component: Cookie,
   },
   {
     path: "/signin",

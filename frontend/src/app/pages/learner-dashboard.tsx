@@ -10,6 +10,8 @@ import { Textarea } from "../components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
 import AIAssistant from "../components/AIAssistant";
+import { PaymentModal } from "../components/PaymentModal";
+import { LearnerSubNav } from "../components/TeacherSubNav";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import { buildGoogleCalendarUrl } from "@/lib/googleCalendar";
@@ -24,7 +26,12 @@ const STATUS_COLORS: Record<string, string> = {
   completed: "bg-blue-100 text-blue-700",
 };
 
-function BookingRow({ booking, onCancel }: { booking: Booking; onCancel?: () => void }) {
+function BookingRow({ booking, onCancel, onPaid }: { booking: Booking; onCancel?: () => void; onPaid?: (b: Booking) => void }) {
+  const [payingOpen, setPayingOpen] = useState(false);
+  const isPaid = booking.payment_status === "paid";
+  // Only lessons that are still going ahead are worth paying for.
+  const payable = !isPaid && ["pending", "confirmed"].includes(booking.status);
+
   return (
     <div className="py-3 border-b last:border-0">
       <div className="flex items-start justify-between gap-2">
@@ -63,6 +70,21 @@ function BookingRow({ booking, onCancel }: { booking: Booking; onCancel?: () => 
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {isPaid ? (
+            <Badge className="text-xs border-0 bg-[#A0B76F]/25 text-[#1A3A35]">
+              paid{booking.payment_amount ? ` · $${booking.payment_amount}` : ""}
+            </Badge>
+          ) : (
+            payable && (
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-[#A0B76F] hover:bg-[#8aa55a] text-[#1A3A35] font-bold rounded-full"
+                onClick={() => setPayingOpen(true)}
+              >
+                Pay now
+              </Button>
+            )
+          )}
           <Badge className={`text-xs border-0 ${STATUS_COLORS[booking.status]}`}>{booking.status}</Badge>
           {onCancel && (
             <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-200 hover:bg-red-50" onClick={onCancel}>
@@ -71,6 +93,18 @@ function BookingRow({ booking, onCancel }: { booking: Booking; onCancel?: () => 
           )}
         </div>
       </div>
+
+      {payingOpen && (
+        <PaymentModal
+          booking={booking}
+          onClose={() => setPayingOpen(false)}
+          onPaid={(payment) => {
+            setPayingOpen(false);
+            toast.success("Payment complete — your lesson is booked.");
+            onPaid?.({ ...booking, payment_status: "paid", payment_amount: payment.amount });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -204,6 +238,15 @@ export function LearnerDashboard() {
     setDashboard((d) => d && { ...d, past_lessons: d.past_lessons.map((b) => (b.id === bookingId ? { ...b, reviewed: true } : b)) });
   };
 
+  /** Reflect a completed payment in both lists without a full refetch. */
+  const markPaid = (updated: Booking) => {
+    setDashboard((d) => {
+      if (!d) return d;
+      const apply = (list: Booking[]) => list.map((b) => (b.id === updated.id ? updated : b));
+      return { ...d, pending_requests: apply(d.pending_requests), upcoming_lessons: apply(d.upcoming_lessons) };
+    });
+  };
+
   if (authLoading || loading) {
     return <div className="min-h-screen flex items-center justify-center text-gray-400">Loading…</div>;
   }
@@ -219,23 +262,7 @@ export function LearnerDashboard() {
             </h1>
             <p className="text-gray-500 text-sm">Your learning dashboard</p>
           </div>
-          <div className="flex gap-3 flex-wrap">
-            <Link to="/learner/profile">
-              <Button variant="outline" size="sm">
-                Edit profile
-              </Button>
-            </Link>
-            <Link to="/bookings">
-              <Button variant="outline" size="sm">
-                Booking history
-              </Button>
-            </Link>
-            <Link to="/teachers">
-              <Button className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full" size="sm">
-                Find a teacher
-              </Button>
-            </Link>
-          </div>
+          <LearnerSubNav />
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
@@ -247,7 +274,9 @@ export function LearnerDashboard() {
               {dashboard?.pending_requests.length === 0 ? (
                 <p className="text-sm text-gray-400">No pending requests.</p>
               ) : (
-                dashboard?.pending_requests.map((b) => <BookingRow key={b.id} booking={b} onCancel={() => handleCancel(b.id)} />)
+                dashboard?.pending_requests.map((b) => (
+                  <BookingRow key={b.id} booking={b} onCancel={() => handleCancel(b.id)} onPaid={markPaid} />
+                ))
               )}
             </CardContent>
           </Card>
@@ -265,7 +294,9 @@ export function LearnerDashboard() {
                   </Link>
                 </div>
               ) : (
-                dashboard?.upcoming_lessons.map((b) => <BookingRow key={b.id} booking={b} onCancel={() => handleCancel(b.id)} />)
+                dashboard?.upcoming_lessons.map((b) => (
+                  <BookingRow key={b.id} booking={b} onCancel={() => handleCancel(b.id)} onPaid={markPaid} />
+                ))
               )}
             </CardContent>
           </Card>

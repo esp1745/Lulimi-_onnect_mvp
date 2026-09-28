@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
+import { TeacherSubNav } from "../components/TeacherSubNav";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
@@ -115,6 +116,8 @@ export function TeacherAvailability() {
           </Button>
         </div>
 
+        <TeacherSubNav />
+
         {adding && (
           <Card>
             <CardHeader className="pb-2">
@@ -223,10 +226,6 @@ export function TeacherAvailability() {
             )}
           </CardContent>
         </Card>
-
-        <Button variant="outline" onClick={() => navigate("/teacher/dashboard")}>
-          ← Back to dashboard
-        </Button>
       </div>
       <Footer />
     </div>

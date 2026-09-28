@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
+import { tabClass } from "../components/TeacherSubNav";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { Slider } from "../components/ui/slider";
@@ -223,13 +224,11 @@ export function TeacherListing() {
                   ).map((tab) => (
                     <Button
                       key={tab.key}
-                      variant="ghost"
+                      size="sm"
+                      variant={sortBy === tab.key ? "default" : "outline"}
                       onClick={() => setSortBy(tab.key)}
-                      className={
-                        sortBy === tab.key
-                          ? "bg-white shadow-sm border border-[#EDE7D9] text-[#1A3A35] hover:bg-[#F5F0E8]"
-                          : "text-gray-600 hover:bg-[#F5F0E8]"
-                      }
+                      aria-pressed={sortBy === tab.key}
+                      className={tabClass(sortBy === tab.key)}
                     >
                       {tab.label}
                     </Button>

@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import AIAssistant from "../components/AIAssistant";
+import { TeacherSubNav } from "../components/TeacherSubNav";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import { buildGoogleCalendarUrl } from "@/lib/googleCalendar";
@@ -352,28 +353,7 @@ export function TeacherDashboard() {
             </h1>
             <p className="text-gray-500 text-sm">Your teaching dashboard</p>
           </div>
-          <div className="flex gap-3 flex-wrap">
-            <Link to="/teacher/profile">
-              <Button variant="outline" size="sm">
-                Edit profile
-              </Button>
-            </Link>
-            <Link to="/teacher/availability">
-              <Button variant="outline" size="sm">
-                Availability
-              </Button>
-            </Link>
-            <Link to="/teacher/resources">
-              <Button variant="outline" size="sm">
-                Resources
-              </Button>
-            </Link>
-            <Link to="/bookings">
-              <Button variant="outline" size="sm">
-                Booking history
-              </Button>
-            </Link>
-          </div>
+          <TeacherSubNav />
         </div>
 
         {/* Stats */}

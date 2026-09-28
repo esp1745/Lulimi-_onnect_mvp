@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
+import { TeacherSubNav } from "../components/TeacherSubNav";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -154,6 +155,8 @@ export function TeacherResources() {
             + Add resource
           </Button>
         </div>
+
+        <TeacherSubNav />
 
         {adding && (
           <Card>
@@ -317,10 +320,6 @@ export function TeacherResources() {
             )}
           </CardContent>
         </Card>
-
-        <Button variant="outline" onClick={() => navigate("/teacher/dashboard")}>
-          ← Back to dashboard
-        </Button>
       </div>
       <Footer />
     </div>

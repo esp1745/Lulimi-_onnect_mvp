@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
+import { LearnerSubNav } from "../components/TeacherSubNav";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import api from "@/lib/api";
@@ -37,9 +38,13 @@ export function Messages() {
     <div className="min-h-screen bg-[#F5F0E8]">
       <Navigation />
       <div className="max-w-2xl mx-auto w-full px-6 py-10">
-        <h1 className="text-3xl font-bold text-[#1A3A35] mb-6" style={{ fontFamily: "Playfair Display, serif" }}>
+        <h1 className="text-3xl font-bold text-[#1A3A35] mb-4" style={{ fontFamily: "Playfair Display, serif" }}>
           Messages
         </h1>
+
+        <div className="mb-6">
+          <LearnerSubNav />
+        </div>
 
         <Card>
           <CardContent className="p-0">

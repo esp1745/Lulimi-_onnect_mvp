@@ -12,9 +12,35 @@ import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import PhoneNumberInput from "../components/PhoneNumberInput";
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
+import { TeacherSubNav } from "../components/TeacherSubNav";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
+import { COUNTRY_CODES } from "@/lib/countryCodes";
 import type { Teacher } from "@/types";
+
+// Same options the onboarding wizard offers, so the two stay in step.
+const SPECIALIZATION_OPTIONS = [
+  "Beginner Learners",
+  "Business Language",
+  "Conversational Practice",
+  "Grammar & Writing",
+  "Exam Preparation",
+  "Kids & Teens",
+  "Cultural Immersion",
+  "Pronunciation",
+];
+
+interface EducationRow {
+  degree: string;
+  institution: string;
+}
+interface ExperienceRow {
+  role: string;
+  organization: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
 
 export function TeacherProfileEdit() {
   const { user, loading: authLoading } = useAuth();
@@ -26,17 +52,23 @@ export function TeacherProfileEdit() {
   const [newLang, setNewLang] = useState({ language_name: "", proficiency_type: "fluent" });
   const [newPackage, setNewPackage] = useState({ title: "", description: "", hours: "", price: "", savings: "" });
   const photoInputRef = useRef<HTMLInputElement>(null);
+  // `country` lives on the User record, so it's saved separately from the rest.
+  const [country, setCountry] = useState("");
   const [form, setForm] = useState({
     headline: "",
     bio: "",
     lesson_format: "online",
     years_experience: "",
+    price: "",
     pricing_info: "",
     profile_photo_url: "",
     intro_audio_url: "",
     whatsapp_number: "",
     teaching_levels: [] as string[],
     age_groups: [] as string[],
+    specializations: [] as string[],
+    education: [] as EducationRow[],
+    work_experience: [] as ExperienceRow[],
     certifications: "",
   });
 
@@ -54,17 +86,22 @@ export function TeacherProfileEdit() {
         .get("/api/teachers/profile/")
         .then((r) => {
           setTeacher(r.data);
+          setCountry(r.data.country || "");
           setForm({
             headline: r.data.headline || "",
             bio: r.data.bio || "",
             lesson_format: r.data.lesson_format || "online",
             years_experience: r.data.years_experience || "",
+            price: r.data.price ?? "",
             pricing_info: r.data.pricing_info || "",
             profile_photo_url: r.data.profile_photo_url || "",
             intro_audio_url: r.data.intro_audio_url || "",
             whatsapp_number: r.data.whatsapp_number || "",
             teaching_levels: r.data.teaching_levels || [],
             age_groups: r.data.age_groups || [],
+            specializations: r.data.specializations || [],
+            education: r.data.education || [],
+            work_experience: r.data.work_experience || [],
             certifications: r.data.certifications || "",
           });
         })
@@ -76,8 +113,21 @@ export function TeacherProfileEdit() {
     e.preventDefault();
     setSaving(true);
     try {
-      const { data } = await api.put("/api/teachers/profile/", form);
-      setTeacher(data);
+      const payload = {
+        ...form,
+        // Empty number fields must go as null, not "" (which fails validation).
+        years_experience: form.years_experience === "" ? null : form.years_experience,
+        price: form.price === "" ? null : form.price,
+        // Drop blank rows so we don't persist empty cards.
+        education: form.education.filter((r) => r.degree.trim() || r.institution.trim()),
+        work_experience: form.work_experience.filter((r) => r.role.trim() || r.organization.trim()),
+      };
+      const { data } = await api.put("/api/teachers/profile/", payload);
+      // Country belongs to the account, not the teaching profile.
+      if (country !== (teacher?.country ?? "")) {
+        await api.patch("/api/auth/me/", { country }).catch(() => {});
+      }
+      setTeacher({ ...data, country });
       toast.success("Profile saved.");
     } catch {
       toast.error("Could not save profile.");
@@ -85,6 +135,30 @@ export function TeacherProfileEdit() {
       setSaving(false);
     }
   };
+
+  const toggleSpecialization = (spec: string) =>
+    setForm((f) => ({
+      ...f,
+      specializations: f.specializations.includes(spec)
+        ? f.specializations.filter((s) => s !== spec)
+        : [...f.specializations, spec],
+    }));
+
+  const addEducation = () => setForm((f) => ({ ...f, education: [...f.education, { degree: "", institution: "" }] }));
+  const updateEducation = (i: number, key: keyof EducationRow, value: string) =>
+    setForm((f) => ({ ...f, education: f.education.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)) }));
+  const removeEducation = (i: number) =>
+    setForm((f) => ({ ...f, education: f.education.filter((_, idx) => idx !== i) }));
+
+  const addExperience = () =>
+    setForm((f) => ({
+      ...f,
+      work_experience: [...f.work_experience, { role: "", organization: "", startDate: "", endDate: "", description: "" }],
+    }));
+  const updateExperience = (i: number, key: keyof ExperienceRow, value: string) =>
+    setForm((f) => ({ ...f, work_experience: f.work_experience.map((r, idx) => (idx === i ? { ...r, [key]: value } : r)) }));
+  const removeExperience = (i: number) =>
+    setForm((f) => ({ ...f, work_experience: f.work_experience.filter((_, idx) => idx !== i) }));
 
   const refreshTeacher = async () => {
     const { data } = await api.get("/api/teachers/profile/");
@@ -204,6 +278,8 @@ export function TeacherProfileEdit() {
           </div>
         </div>
 
+        <TeacherSubNav />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Profile details</CardTitle>
@@ -236,8 +312,38 @@ export function TeacherProfileEdit() {
                   <Input type="number" value={form.years_experience} onChange={set("years_experience")} placeholder="e.g. 5" min={0} />
                 </div>
                 <div className="space-y-1">
-                  <Label>Pricing info</Label>
-                  <Input value={form.pricing_info} onChange={set("pricing_info")} placeholder="e.g. $30/hr" />
+                  <Label>Hourly rate (USD)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    inputMode="decimal"
+                    value={form.price}
+                    onChange={set("price")}
+                    placeholder="e.g. 25"
+                  />
+                  <p className="text-xs text-gray-400">What learners are charged per hour.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Country</Label>
+                  <select
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="w-full rounded-xl px-4 py-3 text-sm bg-white border border-[#1A3A35]/15 focus:outline-none focus:ring-2 focus:ring-[#1A3A35]/20"
+                  >
+                    <option value="">Select your country</option>
+                    {COUNTRY_CODES.map((c) => (
+                      <option key={c.name} value={c.name}>
+                        {c.flag} {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Pricing notes</Label>
+                  <Input value={form.pricing_info} onChange={set("pricing_info")} placeholder="e.g. Free intro session" />
                 </div>
               </div>
 
@@ -325,6 +431,112 @@ export function TeacherProfileEdit() {
                 {saving ? "Saving…" : "Save profile"}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Same ground the onboarding "Experience" step covers, so teachers can
+            edit everything they entered during registration. */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Background</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <Label>Education</Label>
+              {form.education.map((edu, idx) => (
+                <div key={idx} className="relative rounded-xl border border-[#1A3A35]/10 p-3">
+                  <button
+                    type="button"
+                    onClick={() => removeEducation(idx)}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                    aria-label="Remove education"
+                  >
+                    ×
+                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
+                    <Input
+                      value={edu.degree}
+                      onChange={(e) => updateEducation(idx, "degree", e.target.value)}
+                      placeholder="Degree / qualification"
+                    />
+                    <Input
+                      value={edu.institution}
+                      onChange={(e) => updateEducation(idx, "institution", e.target.value)}
+                      placeholder="Institution"
+                    />
+                  </div>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addEducation}>
+                + Add education
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Teaching experience</Label>
+              {form.work_experience.map((exp, idx) => (
+                <div key={idx} className="relative rounded-xl border border-[#1A3A35]/10 p-3 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => removeExperience(idx)}
+                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                    aria-label="Remove experience"
+                  >
+                    ×
+                  </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
+                    <Input
+                      value={exp.role}
+                      onChange={(e) => updateExperience(idx, "role", e.target.value)}
+                      placeholder="Role"
+                    />
+                    <Input
+                      value={exp.organization}
+                      onChange={(e) => updateExperience(idx, "organization", e.target.value)}
+                      placeholder="Organization"
+                    />
+                  </div>
+                  <Textarea
+                    value={exp.description}
+                    onChange={(e) => updateExperience(idx, "description", e.target.value)}
+                    placeholder="What did you do? (optional)"
+                    rows={2}
+                  />
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addExperience}>
+                + Add experience
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Specializations</Label>
+              <div className="flex flex-wrap gap-2">
+                {SPECIALIZATION_OPTIONS.map((spec) => (
+                  <button
+                    key={spec}
+                    type="button"
+                    onClick={() => toggleSpecialization(spec)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                      form.specializations.includes(spec)
+                        ? "bg-[#A0B76F] text-[#1A3A35] border-[#A0B76F] font-semibold"
+                        : "bg-white text-gray-600 border-[#1A3A35]/20 hover:border-[#A0B76F]"
+                    }`}
+                  >
+                    {spec}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              className="bg-[#C4622D] hover:bg-[#7A2E1A] text-white rounded-full"
+              disabled={saving}
+              onClick={handleSave}
+            >
+              {saving ? "Saving…" : "Save background"}
+            </Button>
           </CardContent>
         </Card>
 
@@ -435,12 +647,6 @@ export function TeacherProfileEdit() {
           connectedDescription="Confirmed lessons automatically get a Google Meet link and show up on your calendar."
           disconnectedDescription="Connect your Google Calendar to auto-create Meet links and keep your availability in sync."
         />
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => navigate("/teacher/dashboard")}>
-            ← Back to dashboard
-          </Button>
-        </div>
       </div>
       <Footer />
     </div>

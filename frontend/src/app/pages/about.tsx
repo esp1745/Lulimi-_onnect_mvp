@@ -16,16 +16,16 @@ import mockupGoLive from "@/assets/mockup-go-live.png";
 // the continent so the connecting arcs read as one spanning network.
 const PINS = [
   { lat: 6.5, lng: 3.4, city: "Lagos", language: "Yoruba · Igbo", color: "#C4622D" },
-  { lat: 5.6, lng: -0.2, city: "Accra", language: "Twi", color: "#2D5A45" },
+  { lat: 5.6, lng: -0.2, city: "Accra", language: "Twi", color: "#A0B76F" },
   { lat: 14.7, lng: -17.5, city: "Dakar", language: "Wolof · Fula", color: "#F5C42C" },
   { lat: 12.4, lng: -1.5, city: "Ouagadougou", language: "Bambara", color: "#C4622D" },
-  { lat: 15.6, lng: 32.5, city: "Khartoum", language: "Hausa", color: "#2D5A45" },
+  { lat: 15.6, lng: 32.5, city: "Khartoum", language: "Hausa", color: "#A0B76F" },
   { lat: 9.0, lng: 38.7, city: "Addis Ababa", language: "Amharic · Tigrinya", color: "#F5C42C" },
   { lat: 2.0, lng: 45.3, city: "Mogadishu", language: "Somali", color: "#C4622D" },
-  { lat: -1.3, lng: 36.8, city: "Nairobi", language: "Swahili", color: "#2D5A45" },
+  { lat: -1.3, lng: 36.8, city: "Nairobi", language: "Swahili", color: "#A0B76F" },
   { lat: -1.9, lng: 29.9, city: "Kigali", language: "Kinyarwanda", color: "#F5C42C" },
   { lat: -4.3, lng: 15.3, city: "Kinshasa", language: "Lingala", color: "#C4622D" },
-  { lat: -17.8, lng: 31.0, city: "Harare", language: "Shona", color: "#2D5A45" },
+  { lat: -17.8, lng: 31.0, city: "Harare", language: "Shona", color: "#A0B76F" },
   { lat: -26.2, lng: 28.0, city: "Johannesburg", language: "Zulu · Xhosa", color: "#F5C42C" },
 ];
 
@@ -162,7 +162,7 @@ function AfricaGlobe({ activeIndex }: { activeIndex: number }) {
 const teacherSteps = [
   {
     number: "01",
-    badgeColor: "#2D5A45",
+    badgeColor: "#A0B76F",
     image: mockupShareProfile,
     title: "Share your profile",
     description: "Tell us about your teaching experience and the languages you speak.",
@@ -210,14 +210,14 @@ export function About() {
         <div className="flex flex-col lg:flex-row items-center min-h-[560px]">
           {/* Text */}
           <div className="w-full lg:w-[52%] px-6 md:px-16 lg:pl-20 lg:pr-8 z-10">
-            <div className="bg-[#2D5A45] text-[#F5F0E8] text-xs font-semibold px-4 py-2 rounded-full inline-flex items-center gap-2 mb-6">
+            <div className="bg-[#A0B76F] text-[#1A3A35] text-xs font-bold px-4 py-2 rounded-full inline-flex items-center gap-2 mb-6">
               <span className="w-2 h-2 rounded-full bg-[#F5C42C]"></span>
               ABOUT LULIMI
             </div>
 
             <h1
               className="text-5xl lg:text-6xl leading-[1.1] mb-6 text-[#1A3A35]"
-              style={{ fontFamily: "Playfair Display, serif" }}
+              
             >
               Reconnecting the world with <em className="text-[#C4622D] not-italic">African languages</em>
             </h1>
@@ -289,7 +289,7 @@ export function About() {
       {/* How it works for teachers */}
       <section className="py-20 px-6 bg-[#EAF2EA]">
         <div className="container mx-auto max-w-[1100px] text-center">
-          <h2 className="text-4xl font-bold mb-3 text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
+          <h2 className="text-4xl font-bold mb-3 text-[#1A3A35]" >
             How it works for teachers
           </h2>
           <p className="text-gray-600 mb-14">Start teaching in three simple steps</p>
@@ -299,7 +299,7 @@ export function About() {
           </div>
 
           <Link to="/teacher/onboarding">
-            <Button className="bg-[#2D5A45] hover:bg-[#1A3A35] text-white rounded-full px-8">
+            <Button className="bg-[#A0B76F] hover:bg-[#8aa55a] text-[#1A3A35] font-semibold rounded-full px-8">
               Join as a teacher
             </Button>
           </Link>
@@ -309,7 +309,7 @@ export function About() {
       {/* How it works for learners */}
       <section className="py-20 px-6 bg-[#FDF3E7]">
         <div className="container mx-auto max-w-[1100px] text-center">
-          <h2 className="text-4xl font-bold mb-3 text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
+          <h2 className="text-4xl font-bold mb-3 text-[#1A3A35]" >
             How it works for learners
           </h2>
           <p className="text-gray-600 mb-14">Reconnect with your heritage language</p>
@@ -330,7 +330,7 @@ export function About() {
           <Link to="/teachers">
             <Button
               variant="outline"
-              className="border-2 border-[#1A3A35] text-[#1A3A35] hover:bg-[#1A3A35] hover:text-white rounded-full px-8"
+              className="border-2 border-[#1A3A35] text-[#1A3A35] hover:bg-[#A0B76F] hover:text-[#1A3A35] rounded-full px-8"
             >
               Find a teacher
             </Button>
@@ -341,8 +341,8 @@ export function About() {
       {/* Community first */}
       <section className="py-24 px-6 bg-[#F5F0E8]">
         <div className="container mx-auto max-w-[640px] text-center">
-          <Heart className="w-10 h-10 text-[#2D5A45] mx-auto mb-6" strokeWidth={1.5} />
-          <h2 className="text-3xl font-bold mb-5 text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
+          <Heart className="w-10 h-10 text-[#A0B76F] mx-auto mb-6" strokeWidth={1.5} />
+          <h2 className="text-3xl font-bold mb-5 text-[#1A3A35]" >
             Community first, not marketplace first
           </h2>
           <p className="text-gray-600 leading-relaxed">
@@ -354,22 +354,22 @@ export function About() {
       </section>
 
       {/* Stats */}
-      <section className="py-20 px-6 bg-[#1A3A35]">
+      <section className="py-20 px-6 bg-[#A0B76F]">
         <div className="container mx-auto max-w-[720px] grid grid-cols-3 gap-8">
           <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-2" style={{ fontFamily: "Playfair Display, serif" }}>
+            <div className="text-4xl font-bold text-white mb-2" >
               <AnimatedCounter value={240} suffix="+" suffixClassName="text-2xl" />
             </div>
             <div className="text-[13px] text-white/60">Certified teachers</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-2" style={{ fontFamily: "Playfair Display, serif" }}>
+            <div className="text-4xl font-bold text-white mb-2" >
               <AnimatedCounter value={52} />
             </div>
             <div className="text-[13px] text-white/60">African languages</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-2" style={{ fontFamily: "Playfair Display, serif" }}>
+            <div className="text-4xl font-bold text-white mb-2" >
               <AnimatedCounter value={8400} suffix="+" suffixClassName="text-2xl" />
             </div>
             <div className="text-[13px] text-white/60">Learners worldwide</div>
@@ -392,7 +392,7 @@ export function About() {
               <div className="flex-1">
                 <h2
                   className="text-[32px] text-white font-bold mb-3 leading-tight"
-                  style={{ fontFamily: "Playfair Display, serif" }}
+                  
                 >
                   Ready to get started?
                 </h2>

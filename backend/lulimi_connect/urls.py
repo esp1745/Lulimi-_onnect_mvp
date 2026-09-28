@@ -14,4 +14,5 @@ urlpatterns = [
     path('api/ai/', include('apps.ai_assistant.urls')),
     path('api/calendar/', include('apps.calendar_integration.urls')),
     path('api/messaging/', include('apps.messaging.urls')),
+    path('api/payments/', include('apps.payments.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -7,6 +7,20 @@ interface StepProps {
   updateFormData: (data: Partial<OnboardingData>) => void;
 }
 
+const DEGREE_OPTIONS = [
+  "High School Certificate",
+  "Certificate",
+  "Diploma",
+  "Advanced Diploma",
+  "Undergraduate",
+  "Bachelor's Degree",
+  "Postgraduate Diploma",
+  "Master's Degree",
+  "PhD / Doctorate",
+  "Teaching Qualification (TEFL/TESOL)",
+  "Other",
+];
+
 const specializationOptions = [
   "Beginner Learners",
   "Business Language",
@@ -92,12 +106,18 @@ export function StepExperience({ formData, updateFormData }: StepProps) {
                 <X className="w-4 h-4" />
               </button>
               <div className="grid grid-cols-2 gap-3">
-                <input
+                <select
                   value={edu.degree}
                   onChange={(e) => updateEducation(idx, "degree", e.target.value)}
-                  placeholder="Degree"
-                  className="px-3 py-2 border border-[#EDE7D9] rounded-lg focus:outline-none focus:border-[#1A3A35]"
-                />
+                  className="px-3 py-2 border border-[#EDE7D9] rounded-lg bg-white focus:outline-none focus:border-[#1A3A35]"
+                >
+                  <option value="">Select qualification</option>
+                  {DEGREE_OPTIONS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
                 <input
                   value={edu.institution}
                   onChange={(e) => updateEducation(idx, "institution", e.target.value)}

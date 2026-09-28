@@ -27,7 +27,7 @@ export function StepCards({ steps }: { steps: StepCardData[] }) {
           <div className="relative p-6 pt-5 overflow-hidden">
             <span
               className="absolute -top-2 right-3 text-6xl font-bold text-[#1A3A35]/5 select-none"
-              style={{ fontFamily: "Playfair Display, serif" }}
+              
             >
               {step.number}
             </span>

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
+import { RoleSubNav, tabClass } from "../components/TeacherSubNav";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
@@ -62,19 +63,18 @@ export function BookingHistory() {
             </h1>
             <p className="text-gray-500 text-sm mt-1">Every lesson {isTeacher ? "you've taught or been asked to teach" : "you've booked"}.</p>
           </div>
-          <Button variant="outline" onClick={() => navigate(isTeacher ? "/teacher/dashboard" : "/learner/dashboard")}>
-            ← Back to dashboard
-          </Button>
         </div>
+
+        <RoleSubNav />
 
         <div className="flex flex-wrap gap-2">
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
+              type="button"
               onClick={() => setStatusFilter(s)}
-              className={`text-xs px-3 py-1.5 rounded-full border capitalize transition-colors ${
-                statusFilter === s ? "bg-[#1A3A35] text-white border-[#1A3A35]" : "bg-white text-gray-600 border-[#1A3A35]/20 hover:border-[#1A3A35]/40"
-              }`}
+              aria-pressed={statusFilter === s}
+              className={`${tabClass(statusFilter === s)} capitalize`}
             >
               {s}
             </button>

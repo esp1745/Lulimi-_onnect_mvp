@@ -5,13 +5,13 @@ import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/button";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import { useAuth } from "../context/auth-context";
+import { landingPathForUser } from "@/lib/landing";
 import type { User } from "@/types";
 import lulimiLogoBlack from "@/assets/lulimi-logo-black.png";
 
-function routeForUser(user: User, navigate: ReturnType<typeof useNavigate>) {
-  if (user.role === "teacher") navigate("/teacher/dashboard");
-  else if (user.role === "admin") navigate("/");
-  else navigate("/learner/dashboard");
+async function routeForUser(user: User, navigate: ReturnType<typeof useNavigate>) {
+  // Teachers who haven't finished registering land in onboarding, not the dashboard.
+  navigate(await landingPathForUser(user));
 }
 
 export function SignIn() {
@@ -36,7 +36,7 @@ export function SignIn() {
     try {
       const user = await signIn(email, password);
       toast.success("Welcome back!");
-      routeForUser(user, navigate);
+      await routeForUser(user, navigate);
     } catch {
       setError("Invalid email or password.");
     } finally {
@@ -44,9 +44,9 @@ export function SignIn() {
     }
   };
 
-  const handleGoogleSuccess = (user: User) => {
+  const handleGoogleSuccess = async (user: User) => {
     toast.success("Welcome back!");
-    routeForUser(user, navigate);
+    await routeForUser(user, navigate);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
@@ -38,8 +38,43 @@ export function TeacherProfile() {
     timezone_snapshot: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
   const [startRaw, setStartRaw] = useState("");
-  const [endRaw, setEndRaw] = useState("");
+  const [durationMin, setDurationMin] = useState(60);
   const [bookingLoading, setBookingLoading] = useState(false);
+
+  const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  /** The learner picks a start and a length; the end time is derived. */
+  const applySchedule = (raw: string, minutes: number) => {
+    setStartRaw(raw);
+    setDurationMin(minutes);
+    if (!raw) {
+      setBooking((b) => ({ ...b, start_at: "", end_at: "" }));
+      return;
+    }
+    const start = new Date(raw);
+    const end = new Date(start.getTime() + minutes * 60000);
+    setBooking((b) => ({ ...b, start_at: start.toISOString(), end_at: end.toISOString() }));
+  };
+
+  /** Availability grouped into a Mon–Sun week for the table. */
+  const weeklyAvailability = useMemo(() => {
+    const week = DAYS.map((day) => ({ day, slots: [] as { start: string; end: string }[] }));
+    availability
+      .filter((a) => a.is_active)
+      .forEach((slot) => {
+        const bucket = week[slot.converted_day_of_week ?? slot.day_of_week];
+        if (!bucket) return;
+        bucket.slots.push({
+          start: (slot.converted_start_time ?? slot.start_time).slice(0, 5),
+          end: (slot.converted_end_time ?? slot.end_time).slice(0, 5),
+        });
+      });
+    week.forEach((d) => d.slots.sort((a, b) => a.start.localeCompare(b.start)));
+    return week;
+  }, [availability]);
+
+  const openDays = weeklyAvailability.filter((d) => d.slots.length > 0).length;
+  const todayIdx = (new Date().getDay() + 6) % 7; // JS Sun=0 → Mon=0
 
   useEffect(() => {
     if (!id) return;
@@ -317,27 +352,67 @@ export function TeacherProfile() {
 
         {/* Availability + Booking Section */}
         <div id="book" className="grid md:grid-cols-3 gap-8 mb-8">
-          <div className="md:col-span-2 bg-white rounded-2xl p-8 shadow-sm border border-[#1A3A35]/10">
-            <h2 className="text-2xl font-bold text-[#1A3A35] mb-4" style={{ fontFamily: "Playfair Display, serif" }}>
-              Availability
-            </h2>
-            {availability.filter((a) => a.is_active).length > 0 ? (
-              <div className="space-y-2">
-                {availability
-                  .filter((a) => a.is_active)
-                  .map((slot) => (
-                    <div key={slot.id} className="flex items-center gap-3 text-sm">
-                      <span className="w-24 font-medium text-gray-700">
-                        {DAYS[slot.converted_day_of_week ?? slot.day_of_week]}
-                      </span>
-                      <span className="text-gray-500">
-                        {slot.converted_start_time ?? slot.start_time} – {slot.converted_end_time ?? slot.end_time}
-                      </span>
+          <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-[#1A3A35]/10 overflow-hidden">
+            <div className="flex items-start justify-between gap-4 flex-wrap px-6 pt-6 pb-4 border-b border-[#1A3A35]/10">
+              <div>
+                <h2 className="text-2xl font-bold text-[#1A3A35]">Weekly availability</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {openDays > 0
+                    ? `Teaches ${openDays} ${openDays === 1 ? "day" : "days"} a week · times shown in ${viewerTz}`
+                    : "No schedule published yet"}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1A3A35] bg-[#A0B76F]/20 rounded-full px-3 py-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Your local time
+              </span>
+            </div>
+
+            {openDays > 0 ? (
+              <div className="divide-y divide-[#1A3A35]/10">
+                {weeklyAvailability.map((row, idx) => {
+                  const isToday = idx === todayIdx;
+                  const open = row.slots.length > 0;
+                  return (
+                    <div
+                      key={row.day}
+                      className={`grid grid-cols-[104px_1fr] items-center gap-3 px-6 py-3 ${
+                        isToday ? "bg-[#A0B76F]/10" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-sm ${open ? "font-bold text-[#1A3A35]" : "font-medium text-gray-400"}`}>
+                          {row.day.slice(0, 3)}
+                        </span>
+                        {isToday && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-[#1A3A35] bg-[#A0B76F] rounded-full px-1.5 py-0.5">
+                            Today
+                          </span>
+                        )}
+                      </div>
+
+                      {open ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {row.slots.map((s, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center rounded-full border border-[#A0B76F]/40 bg-[#A0B76F]/15 px-3 py-1 text-xs font-semibold text-[#1A3A35]"
+                            >
+                              {s.start} – {s.end}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-300">Not available</span>
+                      )}
                     </div>
-                  ))}
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-gray-400 text-sm">This teacher hasn't set their availability yet.</p>
+              <p className="text-gray-400 text-sm px-6 py-8 text-center">
+                This teacher hasn't set their availability yet — you can still send a request below.
+              </p>
             )}
           </div>
 
@@ -364,24 +439,38 @@ export function TeacherProfile() {
                     <Input
                       type="datetime-local"
                       value={startRaw}
-                      onChange={(e) => {
-                        setStartRaw(e.target.value);
-                        setBooking((b) => ({ ...b, start_at: e.target.value ? new Date(e.target.value).toISOString() : "" }));
-                      }}
+                      onChange={(e) => applySchedule(e.target.value, durationMin)}
                       required
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label>End time</Label>
-                    <Input
-                      type="datetime-local"
-                      value={endRaw}
-                      onChange={(e) => {
-                        setEndRaw(e.target.value);
-                        setBooking((b) => ({ ...b, end_at: e.target.value ? new Date(e.target.value).toISOString() : "" }));
-                      }}
-                      required
-                    />
+                    <Label>How long?</Label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[30, 45, 60, 90].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => applySchedule(startRaw, m)}
+                          aria-pressed={durationMin === m}
+                          className={`rounded-full py-1.5 text-xs font-bold border transition-colors ${
+                            durationMin === m
+                              ? "bg-[#A0B76F] text-[#1A3A35] border-[#A0B76F]"
+                              : "bg-white text-[#1A3A35] border-[#1A3A35]/20 hover:border-[#A0B76F]"
+                          }`}
+                        >
+                          {m}m
+                        </button>
+                      ))}
+                    </div>
+                    {/* End time is derived, so the learner never has to enter it twice. */}
+                    {booking.end_at && (
+                      <p className="text-xs text-gray-500 pt-1">
+                        Ends at{" "}
+                        <span className="font-semibold text-[#1A3A35]">
+                          {new Date(booking.end_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                        </span>
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label>

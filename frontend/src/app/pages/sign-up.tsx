@@ -6,6 +6,7 @@ import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import { useAuth } from "../context/auth-context";
+import { landingPathForUser } from "@/lib/landing";
 import type { User } from "@/types";
 import lulimiLogoBlack from "@/assets/lulimi-logo-black.png";
 
@@ -27,11 +28,13 @@ export function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
+  const [emailTaken, setEmailTaken] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setEmailTaken(false);
 
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
       setError("Please fill in all fields.");
@@ -61,16 +64,33 @@ export function SignUp() {
       toast.success("Account created! Welcome to Lulimi.");
       navigate(role === "teacher" ? "/teacher/onboarding" : "/");
     } catch (err: unknown) {
-      const data = (err as { response?: { data?: unknown } })?.response?.data;
-      setError(typeof data === "object" && data ? Object.values(data).flat().join(" ") : "Registration failed.");
+      const response = (err as { response?: { data?: unknown; status?: number } })?.response;
+      const data = response?.data;
+      const messages =
+        typeof data === "object" && data ? Object.values(data as Record<string, unknown>).flat().map(String) : [];
+
+      // The most common rejection is an email that's already registered —
+      // say so plainly and point at sign-in rather than echoing the raw
+      // serializer wording.
+      if (messages.some((m) => /already exists/i.test(m))) {
+        setEmailTaken(true);
+        setError("");
+      } else if (messages.length) {
+        setError(messages.join(" "));
+      } else if (!response) {
+        setError("Can't reach the server. Check your connection and try again.");
+      } else {
+        setError("Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSuccess = (user: User) => {
+  const handleGoogleSuccess = async (user: User) => {
     toast.success("Account ready!");
-    navigate(user.role === "teacher" ? "/teacher/onboarding" : "/");
+    // Existing teachers with a finished profile skip onboarding.
+    navigate(await landingPathForUser(user));
   };
 
   return (
@@ -185,6 +205,20 @@ export function SignUp() {
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
+
+          {emailTaken && (
+            <div className="rounded-xl bg-[#C4622D]/10 border border-[#C4622D]/25 px-4 py-3 text-sm text-[#7A2E1A]">
+              An account already uses <span className="font-semibold">{email}</span>.{" "}
+              <Link to="/signin" className="font-bold underline hover:no-underline">
+                Sign in instead
+              </Link>{" "}
+              or{" "}
+              <Link to="/forgot-password" className="font-bold underline hover:no-underline">
+                reset your password
+              </Link>
+              .
+            </div>
+          )}
 
           <Button
             type="submit"

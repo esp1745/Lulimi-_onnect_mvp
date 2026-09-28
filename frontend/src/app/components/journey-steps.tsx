@@ -13,7 +13,7 @@ const steps = [
   },
   {
     number: "02",
-    badgeColor: "#1A3A35",
+    badgeColor: "#A0B76F",
     image: mockupBookTrial,
     title: "Book a free trial",
     description: "Try a 30-minute introductory lesson before committing. No surprises.",
@@ -32,13 +32,12 @@ export function JourneySteps() {
     <section className="py-24 px-6 bg-[#F5F0E8]">
       <div className="container mx-auto max-w-[1100px] text-center">
         <div className="flex items-center justify-center gap-3 mb-4">
-          <span className="w-8 h-px bg-[#1A3A35]/30" />
-          <span className="text-xs font-semibold tracking-wide text-[#2D5A45]">SIMPLE &amp; PERSONAL</span>
-          <span className="w-8 h-px bg-[#1A3A35]/30" />
+          <span className="w-8 h-px bg-[#A0B76F]/30" />
+          <span className="text-xs font-bold tracking-wide text-[#1A3A35]">SIMPLE &amp; PERSONAL</span>
+          <span className="w-8 h-px bg-[#A0B76F]/30" />
         </div>
         <h2
-          className="text-4xl mb-16 text-[#1A3A35]"
-          style={{ fontFamily: "Playfair Display, serif" }}
+          className="text-4xl mb-16 text-[#1A3A35] font-bold"
         >
           Your language journey, in three steps
         </h2>

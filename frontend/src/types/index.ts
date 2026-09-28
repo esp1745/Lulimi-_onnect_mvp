@@ -121,6 +121,46 @@ export interface Booking {
   learner_notes: string
   created_at: string
   reviewed?: boolean
+  payment_status?: 'unpaid' | 'pending' | 'paid' | 'failed' | 'refunded'
+  payment_amount?: string | null
+}
+
+export interface Payment {
+  id: number
+  booking: number
+  reference: string
+  amount: string
+  platform_fee: string
+  teacher_earnings: string
+  currency: string
+  method: '' | 'card' | 'mtn_momo' | 'airtel_money'
+  method_label: string
+  status: 'pending' | 'paid' | 'failed' | 'refunded'
+  payout_status: 'held' | 'paid_out'
+  payer_label: string
+  teacher_name: string
+  learner_name: string
+  language_name: string
+  start_at: string
+  booking_status: string
+  paid_at: string | null
+  created_at: string
+}
+
+export interface EarningsSummary {
+  total_earned: string
+  pending_payout: string
+  paid_out: string
+  this_month: string
+  awaiting_payment: string
+  lessons_paid: number
+  platform_fees: string
+  currency: string
+}
+
+export interface TeacherEarnings {
+  summary: EarningsSummary
+  payments: Payment[]
 }
 
 export interface Resource {

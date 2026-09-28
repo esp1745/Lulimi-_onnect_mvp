@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Button } from "./ui/button";
 import NotificationsDropdown from "./NotificationsDropdown";
 import api from "@/lib/api";
@@ -36,10 +36,8 @@ function MessagesBadge() {
   );
 }
 
-const navLinks = [
+const publicNavLinks = [
   { label: "Find a Teacher", to: "/teachers" },
-  { label: "Languages", to: "/teachers" },
-  { label: "Resources", to: "/resources" },
   { label: "For Teachers", to: "/teacher/onboarding" },
   { label: "About", to: "/about" },
 ];
@@ -48,14 +46,19 @@ function dashboardPath(role: string) {
   return role === "teacher" ? "/teacher/dashboard" : "/learner/dashboard";
 }
 
-export function Navigation() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
+function profilePath(role: string) {
+  return role === "teacher" ? "/teacher/profile" : "/learner/profile";
+}
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
+export function Navigation() {
+  const { user } = useAuth();
+
+  const initials = user?.full_name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <header className="sticky top-0 z-40 bg-[#F5F0E8]/95 backdrop-blur border-b border-[#1A3A35]/10">
@@ -65,49 +68,64 @@ export function Navigation() {
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks
-            .filter((link) => !(user && link.label === "For Teachers"))
-            .map((link) => (
+          {user ? (
+            // Teachers navigate via the section nav on their pages, so the
+            // header stays clean. Learners keep browse + dashboard links.
+            user.role !== "teacher" && (
+              <>
+                <Link to="/teachers" className="text-sm font-semibold text-[#1A3A35]/80 hover:text-[#1A3A35] transition-colors">
+                  Find a Teacher
+                </Link>
+                <Link to={dashboardPath(user.role)} className="text-sm font-bold text-[#1A3A35] border-b-2 border-[#A0B76F] pb-0.5">
+                  Dashboard
+                </Link>
+              </>
+            )
+          ) : (
+            publicNavLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.to}
-                className="text-sm font-medium text-[#1A3A35]/80 hover:text-[#1A3A35] transition-colors"
+                className="text-sm font-semibold text-[#1A3A35]/80 hover:text-[#1A3A35] transition-colors"
               >
                 {link.label}
               </Link>
-            ))}
+            ))
+          )}
         </nav>
 
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              {user.role === "learner" && (
+                <Link to="/teachers" className="hidden sm:block">
+                  <Button className="rounded-full bg-[#C4622D] hover:bg-[#7A2E1A] text-white text-sm font-bold">
+                    Find a teacher
+                  </Button>
+                </Link>
+              )}
               <MessagesBadge />
               <NotificationsDropdown />
-              <Link to={dashboardPath(user.role)}>
-                <span className="text-sm font-medium text-[#1A3A35]/80 hidden sm:inline hover:text-[#1A3A35]">
-                  Hi, {user.full_name.split(" ")[0]}
-                </span>
-              </Link>
-              <Button
-                variant="outline"
-                className="rounded-full border-[#1A3A35]/20 text-[#1A3A35] hover:bg-[#1A3A35]/5"
-                onClick={handleSignOut}
+              {/* The avatar opens your profile — logging out is an explicit
+                  action on the dashboard, not an accidental avatar click. */}
+              <Link
+                to={profilePath(user.role)}
+                title="Your profile"
+                aria-label="Your profile"
+                className="w-9 h-9 rounded-full bg-[#A0B76F] flex items-center justify-center text-[#1A3A35] text-sm font-bold hover:bg-[#8aa55a] transition-colors"
               >
-                Log out
-              </Button>
+                {initials}
+              </Link>
             </>
           ) : (
             <>
               <Link to="/signin">
-                <Button
-                  variant="outline"
-                  className="rounded-full border-[#1A3A35]/20 text-[#1A3A35] hover:bg-[#1A3A35]/5"
-                >
+                <Button variant="outline" className="rounded-full border-[#1A3A35]/20 text-[#1A3A35] hover:bg-[#A0B76F]/5">
                   Log in
                 </Button>
               </Link>
               <Link to="/signup">
-                <Button className="rounded-full bg-[#1A3A35] hover:bg-[#2D5A45] text-white">
+                <Button className="rounded-full bg-[#C4622D] hover:bg-[#7A2E1A] text-white font-bold">
                   Get started
                 </Button>
               </Link>

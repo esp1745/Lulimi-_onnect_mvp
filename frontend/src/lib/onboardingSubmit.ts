@@ -19,17 +19,6 @@ const SLOT_TIMES: Record<string, [string, string]> = {
   "Late night (9 PM-12 AM)": ["21:00", "23:59"],
 };
 
-// Python's zoneinfo doesn't recognize "GMT+N" labels directly; the POSIX
-// Etc/GMT zones also invert the sign relative to everyday usage.
-const TIMEZONE_MAP: Record<string, string> = {
-  "GMT+0": "UTC",
-  "GMT+1": "Etc/GMT-1",
-  "GMT+2": "Etc/GMT-2",
-  "GMT+3": "Etc/GMT-3",
-  "GMT-5": "Etc/GMT+5",
-  "GMT-8": "Etc/GMT+8",
-};
-
 async function uploadDataUrlPhoto(dataUrl: string): Promise<string> {
   const blob = await (await fetch(dataUrl)).blob();
   const form = new FormData();
@@ -57,7 +46,8 @@ async function syncLanguages(selected: OnboardingData["selectedLanguages"]) {
 
 async function syncAvailability(availability: OnboardingData["availability"]) {
   if (availability.days.length === 0 || availability.timeSlots.length === 0) return;
-  const timezone = TIMEZONE_MAP[availability.timezone] ?? "UTC";
+  // `availability.timezone` is already an IANA id (e.g. "Africa/Lusaka").
+  const timezone = availability.timezone || "UTC";
   const { data: existing } = await api.get("/api/teachers/availability/");
   await Promise.all(existing.map((slot: { id: number }) => api.delete(`/api/teachers/availability/${slot.id}/`)));
 
@@ -102,6 +92,11 @@ export async function submitOnboarding(formData: OnboardingData): Promise<number
       .join(" · "),
     ...(profile_photo_url ? { profile_photo_url } : {}),
   });
+
+  // Country lives on the User account, not the Teacher profile.
+  if (formData.country) {
+    await api.patch("/api/auth/me/", { country: formData.country }).catch(() => {});
+  }
 
   await syncLanguages(formData.selectedLanguages);
   await syncAvailability(formData.availability);

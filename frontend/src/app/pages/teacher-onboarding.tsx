@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
@@ -12,6 +12,9 @@ import { StepAvailability } from "../components/onboarding/step-availability";
 import { StepGoLive } from "../components/onboarding/step-go-live";
 import { useAuth } from "../context/auth-context";
 import { submitOnboarding } from "@/lib/onboardingSubmit";
+import { detectTimezone } from "@/lib/timezones";
+import { loadDraft, saveDraft, clearDraft } from "@/lib/onboardingDraft";
+import api from "@/lib/api";
 import lulimiLogoWhite from "@/assets/lulimi-logo-white.png";
 
 export interface OnboardingData {
@@ -60,12 +63,13 @@ const steps = [
 ];
 
 export function TeacherOnboarding() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [furthestStepReached, setFurthestStepReached] = useState(1);
   const [isPublished, setIsPublished] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
   const [formData, setFormData] = useState<OnboardingData>({
     firstName: "",
     lastName: "",
@@ -83,7 +87,7 @@ export function TeacherOnboarding() {
     availability: {
       days: [],
       timeSlots: [],
-      timezone: "GMT+0",
+      timezone: detectTimezone(),
     },
     pricing: {
       hourlyRate: 0,
@@ -95,6 +99,95 @@ export function TeacherOnboarding() {
 
   const updateFormData = (data: Partial<OnboardingData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
+  };
+
+  // Onboarding needs an account: it's where the draft is saved and how you get
+  // back in later. Send visitors to sign up first, then straight back here.
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate("/signup?role=teacher", { replace: true });
+    } else if (user.role !== "teacher") {
+      toast.error("Only teacher accounts can build a teaching profile.");
+      navigate("/learner/dashboard", { replace: true });
+    }
+  }, [authLoading, user, navigate]);
+
+  // Coming back to finish onboarding? Refill the wizard with whatever was
+  // already saved so nothing has to be typed twice. The local draft wins over
+  // the saved profile, since it holds the most recent (unpublished) edits.
+  useEffect(() => {
+    if (!user) return;
+    const [firstName = "", ...rest] = (user.full_name || "").split(" ");
+
+    setFormData((prev) => ({
+      ...prev,
+      firstName: prev.firstName || firstName,
+      lastName: prev.lastName || rest.join(" "),
+      email: prev.email || user.email || "",
+      country: prev.country || user.country || "",
+    }));
+
+    const draft = loadDraft(user.id);
+    if (draft) {
+      setFormData((prev) => ({ ...prev, ...draft }));
+      setDraftSaved(true);
+    }
+
+    api
+      .get("/api/teachers/profile/")
+      .then(({ data }) => {
+        setFormData((prev) => ({
+          ...prev,
+          headline: prev.headline || data.headline || "",
+          bio: prev.bio || data.bio || "",
+          photoUrl: prev.photoUrl || data.profile_photo_url || "",
+          education: prev.education.length
+            ? prev.education
+            : (data.education || []).map((e: { degree?: string; institution?: string }) => ({
+                degree: e.degree || "",
+                institution: e.institution || "",
+                year: "",
+                field: "",
+              })),
+          experience: prev.experience.length ? prev.experience : data.work_experience || [],
+          specializations: prev.specializations.length ? prev.specializations : data.specializations || [],
+          selectedLanguages: prev.selectedLanguages.length
+            ? prev.selectedLanguages
+            : (data.languages || []).map((l: { language_name: string; proficiency_type: string }) => ({
+                name: l.language_name,
+                proficiency: l.proficiency_type,
+              })),
+          pricing: {
+            ...prev.pricing,
+            hourlyRate: prev.pricing.hourlyRate || Number(data.price) || 0,
+          },
+        }));
+      })
+      .catch(() => {
+        /* no saved profile yet — the blank wizard is correct */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Autosave the draft shortly after each edit, so "progress saved
+  // automatically" is actually true and nothing is lost on an accidental exit.
+  useEffect(() => {
+    if (!user) return;
+    const handle = setTimeout(() => {
+      if (saveDraft(user.id, formData)) setDraftSaved(true);
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [formData, user]);
+
+  /** Save & exit — persist the draft first, then leave. */
+  const handleSaveAndExit = () => {
+    if (user && saveDraft(user.id, formData)) {
+      toast.success("Progress saved. Sign back in any time to pick up where you left off.");
+    } else {
+      toast.error("Couldn't save your progress in this browser. Finish now, or publish what you have.");
+    }
+    navigate("/");
   };
 
   // Only the fields the backend actually requires to publish (headline, bio,
@@ -145,6 +238,7 @@ export function TeacherOnboarding() {
     setPublishing(true);
     try {
       await submitOnboarding(formData);
+      clearDraft(user.id); // published — the draft has served its purpose
       setIsPublished(true);
     } catch (err: unknown) {
       const data = (err as { response?: { data?: unknown } })?.response?.data;
@@ -233,16 +327,15 @@ export function TeacherOnboarding() {
           <img src={lulimiLogoWhite} alt="Lulimi" className="h-9 w-auto" />
         </Link>
         <div className="text-[#F5F0E8]/60 text-sm">
-          Progress saved automatically
+          {draftSaved ? "✓ Progress saved — you can finish later" : "Progress saves as you go"}
         </div>
-        <Link to="/">
-          <Button
-            variant="outline"
-            className="bg-transparent border border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8]/10 rounded-full px-6"
-          >
-            Save & exit
-          </Button>
-        </Link>
+        <Button
+          variant="outline"
+          onClick={handleSaveAndExit}
+          className="bg-transparent border border-[#F5F0E8]/30 text-[#F5F0E8] hover:bg-[#F5F0E8]/10 rounded-full px-6"
+        >
+          Save & exit
+        </Button>
       </div>
 
       <div className="flex">

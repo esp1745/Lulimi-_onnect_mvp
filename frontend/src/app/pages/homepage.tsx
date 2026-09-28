@@ -47,7 +47,7 @@ export function Homepage() {
         <div className="relative z-10 container mx-auto max-w-[860px]">
           {/* Green Pill Tag */}
           <div className="flex justify-center mb-6">
-            <div className="bg-[#2D5A45] text-[#F5F0E8] text-xs font-semibold px-4 py-2 rounded-full inline-flex items-center gap-2">
+            <div className="bg-[#A0B76F] text-[#1A3A35] text-xs font-bold px-4 py-2 rounded-full inline-flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#F5C42C]"></span>
               AFRICAN LANGUAGE EDUCATION PLATFORM
             </div>
@@ -55,8 +55,7 @@ export function Homepage() {
 
           {/* Headline */}
           <h1
-            className="text-5xl lg:text-6xl text-center leading-tight mb-6 text-white"
-            style={{ fontFamily: 'Playfair Display, serif' }}
+            className="text-5xl lg:text-6xl text-center leading-tight mb-6 text-white font-bold"
           >
             Learn{" "}
             <em className="text-[#F5C42C]" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.45)" }}>
@@ -97,28 +96,19 @@ export function Homepage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-8 max-w-[720px] mx-auto">
             <div className="text-center">
-              <div
-                className="text-4xl font-bold text-white mb-2"
-                style={{ fontFamily: 'Playfair Display, serif' }}
-              >
+              <div className="text-4xl font-bold text-white mb-2">
                 <AnimatedCounter value={240} suffix="+" suffixClassName="text-2xl" />
               </div>
               <div className="text-[13px] text-white/70">Certified teachers</div>
             </div>
             <div className="text-center">
-              <div
-                className="text-4xl font-bold text-white mb-2"
-                style={{ fontFamily: 'Playfair Display, serif' }}
-              >
+              <div className="text-4xl font-bold text-white mb-2">
                 <AnimatedCounter value={52} />
               </div>
               <div className="text-[13px] text-white/70">African languages</div>
             </div>
             <div className="text-center">
-              <div
-                className="text-4xl font-bold text-white mb-2"
-                style={{ fontFamily: 'Playfair Display, serif' }}
-              >
+              <div className="text-4xl font-bold text-white mb-2">
                 <AnimatedCounter value={8400} suffix="+" suffixClassName="text-2xl" />
               </div>
               <div className="text-[13px] text-white/70">Learners worldwide</div>
@@ -128,19 +118,19 @@ export function Homepage() {
       </section>
 
       {/* Scrolling Language Strip */}
-      <div className="bg-[#1A3A35] py-5 overflow-hidden">
+      <div className="bg-[#A0B76F] py-5 overflow-hidden">
         <div className="whitespace-nowrap animate-scroll flex items-center">
           {languageStrip.map((lang, i) => (
             <span key={`${lang.name}-${i}`} className="inline-flex items-center gap-6 px-6">
               <span className="inline-flex flex-col items-center leading-tight">
-                <span className="text-[#C4622D] text-lg font-bold" style={{ fontFamily: "Playfair Display, serif" }}>
+                <span className="text-[#B5453C] text-lg font-bold">
                   {lang.word}
                 </span>
-                <span className="text-[#F5F0E8]/50 text-[10px] uppercase tracking-wide mt-0.5">
-                  {lang.meaning} · <span className="font-bold text-[#F5F0E8]/80">{lang.name}</span>
+                <span className="text-[#F5F0E8]/90 text-[10px] uppercase tracking-wide mt-0.5">
+                  {lang.meaning} · <span className="font-bold text-white">{lang.name}</span>
                 </span>
               </span>
-              <span className="text-[#C4622D]/30 text-xl">✦</span>
+              <span className="text-[#B5453C]/40 text-xl">✦</span>
             </span>
           ))}
         </div>
@@ -170,7 +160,6 @@ export function Homepage() {
               <div className="flex-1">
                 <h2
                   className="text-[32px] text-white font-bold mb-3 leading-tight"
-                  style={{ fontFamily: 'Playfair Display, serif' }}
                 >
                   Are you a teacher? Share your gift with the world.
                 </h2>

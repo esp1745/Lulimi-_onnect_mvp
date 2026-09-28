@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { motion } from "motion/react";
 import { Camera, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { AFRICAN_COUNTRIES, citiesForCountry } from "@/lib/africaLocations";
 import type { OnboardingData } from "../../pages/teacher-onboarding";
 
 interface StepProps {
@@ -13,6 +14,7 @@ const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
 export function StepPersonalInfo({ formData, updateFormData }: StepProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cityOptions = citiesForCountry(formData.country);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -130,21 +132,35 @@ export function StepPersonalInfo({ formData, updateFormData }: StepProps) {
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div>
           <label className="block text-sm font-medium text-[#1A3A35] mb-2">Country</label>
-          <input
+          <select
             value={formData.country}
-            onChange={(e) => updateFormData({ country: e.target.value })}
-            placeholder="e.g., Kenya"
+            // Changing country invalidates the city, so clear it.
+            onChange={(e) => updateFormData({ country: e.target.value, city: "" })}
             className="w-full px-4 py-3 bg-white border border-[#EDE7D9] rounded-xl focus:outline-none focus:border-[#1A3A35]"
-          />
+          >
+            <option value="">Select your country</option>
+            {AFRICAN_COUNTRIES.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-[#1A3A35] mb-2">City</label>
-          <input
+          <select
             value={formData.city}
             onChange={(e) => updateFormData({ city: e.target.value })}
-            placeholder="e.g., Nairobi"
-            className="w-full px-4 py-3 bg-white border border-[#EDE7D9] rounded-xl focus:outline-none focus:border-[#1A3A35]"
-          />
+            disabled={cityOptions.length === 0}
+            className="w-full px-4 py-3 bg-white border border-[#EDE7D9] rounded-xl focus:outline-none focus:border-[#1A3A35] disabled:bg-gray-50 disabled:text-gray-400"
+          >
+            <option value="">{formData.country ? "Select your city" : "Pick a country first"}</option>
+            {cityOptions.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

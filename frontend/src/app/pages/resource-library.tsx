@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
+import { tabClass } from "../components/TeacherSubNav";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -45,20 +46,20 @@ export function ResourceLibrary() {
 
         <div className="flex flex-wrap gap-2">
           <button
+            type="button"
             onClick={() => setLanguage("")}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-              language === "" ? "bg-[#1A3A35] text-white border-[#1A3A35]" : "bg-white text-gray-600 border-[#1A3A35]/20 hover:border-[#1A3A35]/40"
-            }`}
+            aria-pressed={language === ""}
+            className={tabClass(language === "")}
           >
             All languages
           </button>
           {ZAMBIAN_LANGUAGES.map((l) => (
             <button
               key={l}
+              type="button"
               onClick={() => setLanguage(l)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                language === l ? "bg-[#1A3A35] text-white border-[#1A3A35]" : "bg-white text-gray-600 border-[#1A3A35]/20 hover:border-[#1A3A35]/40"
-              }`}
+              aria-pressed={language === l}
+              className={tabClass(language === l)}
             >
               {l}
             </button>

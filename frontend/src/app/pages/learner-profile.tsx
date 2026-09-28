@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
+import { LearnerSubNav } from "../components/TeacherSubNav";
 import { Button } from "../components/ui/button";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
@@ -65,6 +66,8 @@ export function LearnerProfile() {
         <h1 className="text-3xl font-bold text-[#1A3A35]" style={{ fontFamily: "Playfair Display, serif" }}>
           Edit profile
         </h1>
+
+        <LearnerSubNav />
 
         <Card>
           <CardHeader>

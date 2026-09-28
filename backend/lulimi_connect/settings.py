@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.ai_assistant',
     'apps.calendar_integration',
     'apps.messaging',
+    'apps.payments',
 ]
 
 MIDDLEWARE = [

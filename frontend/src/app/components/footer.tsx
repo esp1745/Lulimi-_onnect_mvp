@@ -5,8 +5,16 @@ import lulimiLogoWhite from "@/assets/lulimi-logo-white.png";
 const linkTargets: Record<string, string> = {
   "Find a Teacher": "/teachers",
   "Browse Languages": "/teachers",
+  "How It Works": "/how-it-works",
+  "Pricing": "/pricing",
   "Apply to Teach": "/teacher/onboarding",
+  "Resources": "/resources",
+  "Community": "/community",
+  "Teacher FAQ": "/teacher-faq",
   "About Us": "/about",
+  "Blog": "/blog",
+  "Contact": "/contact",
+  "Careers": "/careers",
 };
 
 const columns = [
@@ -28,12 +36,12 @@ const socials = [Facebook, Twitter, Instagram, Linkedin];
 
 export function Footer() {
   return (
-    <footer className="bg-[#1A3A35] text-[#F5F0E8] pt-16">
+    <footer className="bg-[#A0B76F] text-[#F5F0E8] pt-16">
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 pb-12">
           <div>
             <img src={lulimiLogoWhite} alt="Lulimi" className="h-12 w-auto mb-4" />
-            <p className="text-[#F5F0E8]/60 text-sm max-w-xs mb-5">
+            <p className="text-white/85 text-sm max-w-xs mb-5">
               Connecting learners with expert African language teachers worldwide.
             </p>
             <div className="flex gap-3">
@@ -41,7 +49,7 @@ export function Footer() {
                 <a
                   key={idx}
                   href="#"
-                  className="w-9 h-9 rounded-full border border-[#F5F0E8]/20 flex items-center justify-center hover:bg-[#F5F0E8]/10 transition-colors"
+                  className="w-9 h-9 rounded-full border border-white/40 flex items-center justify-center hover:bg-white/15 transition-colors"
                 >
                   <Icon className="w-4 h-4" />
                 </a>
@@ -57,7 +65,7 @@ export function Footer() {
                   <li key={link}>
                     <Link
                       to={linkTargets[link] ?? "/"}
-                      className="text-[#F5F0E8]/70 text-sm hover:text-[#F5F0E8] transition-colors"
+                      className="text-white/85 text-sm hover:text-white transition-colors"
                     >
                       {link}
                     </Link>
@@ -68,12 +76,12 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="border-t border-[#F5F0E8]/10 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-[#F5F0E8]/50">
+        <div className="border-t border-white/20 py-6 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-white/75">
           <span>© 2026 Lulimi. All rights reserved.</span>
           <div className="flex gap-6">
-            <Link to="/" className="hover:text-[#F5F0E8]">Privacy Policy</Link>
-            <Link to="/" className="hover:text-[#F5F0E8]">Terms of Service</Link>
-            <Link to="/" className="hover:text-[#F5F0E8]">Cookie Policy</Link>
+            <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-white">Terms of Service</Link>
+            <Link to="/cookie" className="hover:text-white">Cookie Policy</Link>
           </div>
         </div>
       </div>

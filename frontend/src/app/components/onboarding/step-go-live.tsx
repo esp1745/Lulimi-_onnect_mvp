@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { CheckCircle2, Info } from "lucide-react";
+import { CheckCircle2, AlertCircle, Info } from "lucide-react";
 import type { OnboardingData } from "../../pages/teacher-onboarding";
 
 interface StepGoLiveProps {
@@ -7,19 +7,70 @@ interface StepGoLiveProps {
   goToStep: (step: number) => void;
 }
 
-const checklist = [
-  { step: 1, title: "Personal information", description: "Name, photo, headline, and bio" },
-  { step: 2, title: "Languages & proficiency", description: "Languages you teach and your expertise" },
-  { step: 3, title: "Credentials & experience", description: "Education and teaching background" },
-  { step: 4, title: "Intro video", description: "Your introduction to learners" },
-  { step: 5, title: "Availability & pricing", description: "When you teach and your rates" },
-];
-
 export function StepGoLive({ formData, goToStep }: StepGoLiveProps) {
   const initials =
     formData.firstName && formData.lastName
       ? `${formData.firstName[0]}${formData.lastName[0]}`.toUpperCase()
       : "?";
+
+  const truncate = (text: string, max = 140) =>
+    text.length > max ? `${text.slice(0, max).trimEnd()}…` : text;
+
+  // Each row previews exactly what was entered in that step.
+  const checklist = [
+    {
+      step: 1,
+      title: "Personal information",
+      summary: [
+        [formData.firstName, formData.lastName].filter(Boolean).join(" "),
+        formData.email,
+        [formData.city, formData.country].filter(Boolean).join(", "),
+        formData.headline,
+        formData.bio && truncate(formData.bio),
+        formData.photoUrl ? "✓ Profile photo added" : "",
+      ].filter(Boolean) as string[],
+    },
+    {
+      step: 2,
+      title: "Languages & proficiency",
+      summary: formData.selectedLanguages.map((l) => `${l.name} — ${l.proficiency}`),
+    },
+    {
+      step: 3,
+      title: "Credentials & experience",
+      summary: [
+        ...formData.education
+          .filter((e) => e.degree || e.institution)
+          .map((e) => [e.degree, e.institution].filter(Boolean).join(" · ")),
+        ...formData.experience
+          .filter((e) => e.role || e.organization)
+          .map((e) => [e.role, e.organization].filter(Boolean).join(" at ")),
+        formData.specializations.length ? `Specializations: ${formData.specializations.join(", ")}` : "",
+      ].filter(Boolean) as string[],
+    },
+    {
+      step: 4,
+      title: "Intro video",
+      summary: formData.introVideoUrl ? ["✓ Intro video added"] : [],
+    },
+    {
+      step: 5,
+      title: "Availability & pricing",
+      summary: [
+        formData.availability.days.length ? `Days: ${formData.availability.days.join(", ")}` : "",
+        formData.availability.timeSlots.length ? `Times: ${formData.availability.timeSlots.join(", ")}` : "",
+        formData.availability.timezone ? `Timezone: ${formData.availability.timezone}` : "",
+        formData.pricing.hourlyRate ? `$${formData.pricing.hourlyRate}/hour` : "",
+        [
+          formData.pricing.freeIntro && "Free intro session",
+          formData.pricing.packageDiscounts && "Package discounts",
+          formData.pricing.slidingScale && "Sliding scale",
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      ].filter(Boolean) as string[],
+    },
+  ];
 
   return (
     <motion.div
@@ -78,26 +129,45 @@ export function StepGoLive({ formData, goToStep }: StepGoLiveProps) {
         </div>
       </div>
 
+      {/* Full preview of everything entered, so nothing is published unseen. */}
       <div className="bg-white rounded-2xl border border-[#1A3A35]/10 p-6 mb-8">
-        <h3 className="font-semibold text-lg text-[#1A3A35] mb-4">Profile completion checklist</h3>
+        <h3 className="font-semibold text-lg text-[#1A3A35] mb-4">Review your profile</h3>
         <div className="divide-y divide-[#EDE7D9]">
-          {checklist.map((item) => (
-            <div key={item.step} className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-[#2D5A45]" />
-                <div>
-                  <div className="font-medium text-[#1A3A35]">{item.title}</div>
-                  <div className="text-sm text-gray-500">{item.description}</div>
+          {checklist.map((item) => {
+            const filled = item.summary.length > 0;
+            return (
+              <div key={item.step} className="flex items-start justify-between gap-4 py-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  {filled ? (
+                    <CheckCircle2 className="w-5 h-5 text-[#A0B76F] flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-[#E8922A] flex-shrink-0 mt-0.5" />
+                  )}
+                  <div className="min-w-0">
+                    <div className="font-medium text-[#1A3A35]">{item.title}</div>
+                    {filled ? (
+                      <ul className="mt-1 space-y-0.5">
+                        {item.summary.map((line, i) => (
+                          <li key={i} className="text-sm text-gray-600 break-words">
+                            {line}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-sm text-[#C4622D] mt-1">Nothing added yet</div>
+                    )}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => goToStep(item.step)}
+                  className="text-sm text-[#1A3A35] font-semibold hover:underline flex-shrink-0"
+                >
+                  Edit
+                </button>
               </div>
-              <button
-                onClick={() => goToStep(item.step)}
-                className="text-sm text-[#1A3A35] font-medium hover:underline"
-              >
-                Edit
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
