@@ -88,6 +88,12 @@ export function TeacherProfile() {
         setTeacher(t.data);
         setAvailability(a.data);
         setReviews(r.data);
+
+        // Nothing to choose between when a teacher offers one language.
+        const languages = t.data.languages ?? [];
+        if (languages.length === 1) {
+          setBooking((b) => ({ ...b, language_name: languages[0].language_name }));
+        }
       })
       .catch(() => toast.error("Could not load teacher profile."))
       .finally(() => setLoading(false));
@@ -426,13 +432,32 @@ export function TeacherProfile() {
               ) : (
                 <form onSubmit={handleBook} className="space-y-3">
                   <div className="space-y-1">
-                    <Label>Language</Label>
-                    <Input
+                    <Label htmlFor="booking-language">Language</Label>
+                    {/* Only what this teacher actually teaches — typing a
+                        language they don't offer was never a valid booking. */}
+                    <select
+                      id="booking-language"
                       value={booking.language_name}
                       onChange={(e) => setBooking((b) => ({ ...b, language_name: e.target.value }))}
-                      placeholder="e.g. Kinyarwanda"
                       required
-                    />
+                      disabled={teacher.languages.length === 0}
+                      className="w-full rounded-xl border border-[#1A3A35]/20 bg-white px-4 py-2.5 text-sm text-[#1A3A35] focus:outline-none focus:border-[#A0B76F] focus:ring-2 focus:ring-[#A0B76F]/35 disabled:bg-gray-50 disabled:text-gray-400"
+                    >
+                      {teacher.languages.length === 0 ? (
+                        <option value="">No languages listed yet</option>
+                      ) : (
+                        <>
+                          <option value="" disabled>
+                            Choose a language…
+                          </option>
+                          {teacher.languages.map((lang) => (
+                            <option key={lang.id} value={lang.language_name}>
+                              {lang.language_name}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
                   </div>
                   <div className="space-y-1">
                     <Label>Start time</Label>
