@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { Button } from "./ui/button";
 import NotificationsDropdown from "./NotificationsDropdown";
 import { UserAvatar } from "./UserAvatar";
+import { LearnerSubNav } from "./TeacherSubNav";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
 import lulimiLogo from "@/assets/lulimi-logo.png";
@@ -53,6 +54,7 @@ function profilePath(role: string) {
 
 export function Navigation() {
   const { user } = useAuth();
+  const isLearner = user?.role === "learner";
 
   return (
     <header className="sticky top-0 z-40 bg-[#F5F0E8]/95 backdrop-blur border-b border-[#1A3A35]/10">
@@ -63,21 +65,10 @@ export function Navigation() {
           <img src={lulimiLogo} alt="Lulimi" className="h-9 w-auto" />
         </Link>
 
+        {/* Signed-in navigation lives in the pill row below for learners and
+            on the page itself for teachers, so this slot is public links only. */}
         <nav className="hidden md:flex items-center gap-8">
-          {user ? (
-            // Teachers navigate via the section nav on their pages, so the
-            // header stays clean. Learners keep browse + dashboard links.
-            user.role !== "teacher" && (
-              <>
-                <Link to="/teachers" className="text-sm font-semibold text-[#1A3A35]/80 hover:text-[#1A3A35] transition-colors">
-                  Find a Teacher
-                </Link>
-                <Link to={dashboardPath(user.role)} className="text-sm font-bold text-[#1A3A35] border-b-2 border-[#A0B76F] pb-0.5">
-                  Dashboard
-                </Link>
-              </>
-            )
-          ) : (
+          {!user &&
             publicNavLinks.map((link) => (
               <Link
                 key={link.label}
@@ -86,20 +77,12 @@ export function Navigation() {
               >
                 {link.label}
               </Link>
-            ))
-          )}
+            ))}
         </nav>
 
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              {user.role === "learner" && (
-                <Link to="/teachers" className="hidden sm:block">
-                  <Button className="rounded-full bg-[#C4622D] hover:bg-[#7A2E1A] text-white text-sm font-bold">
-                    Find a teacher
-                  </Button>
-                </Link>
-              )}
               <MessagesBadge />
               <NotificationsDropdown />
               {/* The avatar opens your profile — logging out is an explicit
@@ -129,6 +112,12 @@ export function Navigation() {
           )}
         </div>
       </div>
+
+      {isLearner && (
+        <div className="container mx-auto px-6 pb-3 -mt-2">
+          <LearnerSubNav />
+        </div>
+      )}
     </header>
   );
 }
