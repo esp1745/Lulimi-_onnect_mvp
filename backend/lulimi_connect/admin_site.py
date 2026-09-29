@@ -61,7 +61,16 @@ class LulimiAdminSite(AdminSite):
         now = timezone.now()
         week_ago = now - timedelta(days=7)
 
-        pending_teachers = Teacher.objects.filter(approval_status='pending').count()
+        # Only profiles the teacher actually submitted. Every Teacher row
+        # starts at 'pending', so counting status alone would pad the queue
+        # with people who never finished onboarding — publishing is what
+        # sets is_published and puts a profile in front of a reviewer.
+        pending_teachers = Teacher.objects.filter(
+            approval_status='pending', is_published=True,
+        ).count()
+        unsubmitted = Teacher.objects.filter(
+            approval_status='pending', is_published=False,
+        ).count()
 
         held = Payment.objects.filter(status='paid', payout_status='held').aggregate(
             n=Count('id'), total=Sum('teacher_earnings'),
@@ -78,6 +87,9 @@ class LulimiAdminSite(AdminSite):
         bookings_this_week = Booking.objects.filter(created_at__gte=week_ago).count()
         pending_bookings = Booking.objects.filter(status='pending').count()
 
+        # Submitted and waiting: both filters are in TeacherAdmin.list_filter.
+        PENDING_QUERY = '?approval_status__exact=pending&is_published__exact=1'
+
         def changelist(app, model, query=''):
             return reverse(f'admin:{app}_{model}_changelist') + query
 
@@ -87,7 +99,7 @@ class LulimiAdminSite(AdminSite):
             needs_attention.append({
                 'label': 'teacher profile' + ('s' if pending_teachers != 1 else '') + ' awaiting approval',
                 'count': pending_teachers,
-                'url': changelist('teachers', 'teacher', '?approval_status__exact=pending'),
+                'url': changelist('teachers', 'teacher', PENDING_QUERY),
                 'action': 'Review',
             })
         if held['n']:
@@ -103,8 +115,8 @@ class LulimiAdminSite(AdminSite):
                 {
                     'label': 'Awaiting approval',
                     'value': pending_teachers,
-                    'hint': 'Teacher profiles',
-                    'url': changelist('teachers', 'teacher', '?approval_status__exact=pending'),
+                    'hint': f'{unsubmitted} still unsubmitted' if unsubmitted else 'Submitted profiles',
+                    'url': changelist('teachers', 'teacher', PENDING_QUERY),
                     'tone': 'warn' if pending_teachers else 'calm',
                 },
                 {
