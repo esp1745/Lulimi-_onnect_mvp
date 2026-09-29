@@ -5,7 +5,6 @@ import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Progress } from "../components/ui/progress";
@@ -19,6 +18,12 @@ import api from "@/lib/api";
 import type { Teacher, Availability, Review } from "@/types";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+/** Shared look for the booking form's dropdowns. */
+const SELECT_CLASS =
+  "w-full rounded-xl border border-[#1A3A35]/20 bg-white px-4 py-2.5 text-sm text-[#1A3A35] " +
+  "focus:outline-none focus:border-[#A0B76F] focus:ring-2 focus:ring-[#A0B76F]/35 " +
+  "disabled:bg-gray-50 disabled:text-gray-400";
 
 export function TeacherProfile() {
   const { id } = useParams();
@@ -37,24 +42,15 @@ export function TeacherProfile() {
     learner_whatsapp_number: "",
     timezone_snapshot: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
-  const [startRaw, setStartRaw] = useState("");
+  /** Chosen day, as a local YYYY-MM-DD key. */
+  const [chosenDay, setChosenDay] = useState("");
+  /** Chosen start, as minutes after midnight on that day (can exceed 1440
+   *  for a slot that runs past midnight). */
+  const [chosenMinutes, setChosenMinutes] = useState<number | "">("");
   const [durationMin, setDurationMin] = useState(60);
   const [bookingLoading, setBookingLoading] = useState(false);
 
   const viewerTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  /** The learner picks a start and a length; the end time is derived. */
-  const applySchedule = (raw: string, minutes: number) => {
-    setStartRaw(raw);
-    setDurationMin(minutes);
-    if (!raw) {
-      setBooking((b) => ({ ...b, start_at: "", end_at: "" }));
-      return;
-    }
-    const start = new Date(raw);
-    const end = new Date(start.getTime() + minutes * 60000);
-    setBooking((b) => ({ ...b, start_at: start.toISOString(), end_at: end.toISOString() }));
-  };
 
   /** Availability grouped into a Mon–Sun week for the table. */
   const weeklyAvailability = useMemo(() => {
@@ -75,6 +71,92 @@ export function TeacherProfile() {
 
   const openDays = weeklyAvailability.filter((d) => d.slots.length > 0).length;
   const todayIdx = (new Date().getDay() + 6) % 7; // JS Sun=0 → Mon=0
+
+  /**
+   * The next four weeks of dates the teacher actually teaches on.
+   *
+   * Availability is a weekly pattern, but a booking needs a real date — so
+   * the day dropdown offers concrete dates rather than "Tuesday".
+   */
+  const bookableDays = useMemo(() => {
+    const out: { key: string; label: string; dayIdx: number }[] = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 28; i++) {
+      const dayIdx = (cursor.getDay() + 6) % 7;
+      if (weeklyAvailability[dayIdx]?.slots.length) {
+        out.push({
+          key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`,
+          label: cursor.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }),
+          dayIdx,
+        });
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return out;
+  }, [weeklyAvailability]);
+
+  /** Local midnight for a YYYY-MM-DD key, avoiding UTC parsing of the string. */
+  const dayStart = (key: string) => {
+    const [y, m, d] = key.split("-").map(Number);
+    return new Date(y, m - 1, d, 0, 0, 0, 0);
+  };
+
+  /**
+   * Half-hour start times inside that day's slots, in the viewer's own
+   * timezone. A lesson has to finish inside the slot, so the last offered
+   * start moves earlier as the duration grows, and times already past are
+   * dropped from today.
+   */
+  const bookableTimes = useMemo(() => {
+    const day = bookableDays.find((d) => d.key === chosenDay);
+    if (!day) return [];
+
+    const midnight = dayStart(day.key).getTime();
+    const earliest = Date.now();
+    const times: { minutes: number; label: string }[] = [];
+
+    for (const slot of weeklyAvailability[day.dayIdx].slots) {
+      const [sh, sm] = slot.start.split(":").map(Number);
+      const [eh, em] = slot.end.split(":").map(Number);
+      const from = sh * 60 + sm;
+      // An end at or before the start means the slot runs past midnight.
+      let to = eh * 60 + em;
+      if (to <= from) to += 24 * 60;
+
+      for (let t = from; t + durationMin <= to; t += 30) {
+        if (midnight + t * 60000 <= earliest) continue;
+        if (times.some((x) => x.minutes === t)) continue;
+        const clock = new Date(midnight + t * 60000);
+        times.push({
+          minutes: t,
+          label:
+            clock.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) +
+            (t >= 24 * 60 ? " (next day)" : ""),
+        });
+      }
+    }
+    return times.sort((a, b) => a.minutes - b.minutes);
+  }, [bookableDays, chosenDay, weeklyAvailability, durationMin]);
+
+  /** Fold day + time + duration into the absolute instants the API wants. */
+  useEffect(() => {
+    if (!chosenDay || chosenMinutes === "") {
+      setBooking((b) => (b.start_at ? { ...b, start_at: "", end_at: "" } : b));
+      return;
+    }
+    const start = new Date(dayStart(chosenDay).getTime() + chosenMinutes * 60000);
+    const end = new Date(start.getTime() + durationMin * 60000);
+    setBooking((b) => ({ ...b, start_at: start.toISOString(), end_at: end.toISOString() }));
+  }, [chosenDay, chosenMinutes, durationMin]);
+
+  /** A duration change can push the chosen time past the end of its slot. */
+  useEffect(() => {
+    if (chosenMinutes !== "" && !bookableTimes.some((t) => t.minutes === chosenMinutes)) {
+      setChosenMinutes("");
+    }
+  }, [bookableTimes, chosenMinutes]);
 
   useEffect(() => {
     if (!id) return;
@@ -441,7 +523,7 @@ export function TeacherProfile() {
                       onChange={(e) => setBooking((b) => ({ ...b, language_name: e.target.value }))}
                       required
                       disabled={teacher.languages.length === 0}
-                      className="w-full rounded-xl border border-[#1A3A35]/20 bg-white px-4 py-2.5 text-sm text-[#1A3A35] focus:outline-none focus:border-[#A0B76F] focus:ring-2 focus:ring-[#A0B76F]/35 disabled:bg-gray-50 disabled:text-gray-400"
+                      className={SELECT_CLASS}
                     >
                       {teacher.languages.length === 0 ? (
                         <option value="">No languages listed yet</option>
@@ -459,15 +541,64 @@ export function TeacherProfile() {
                       )}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <Label>Start time</Label>
-                    <Input
-                      type="datetime-local"
-                      value={startRaw}
-                      onChange={(e) => applySchedule(e.target.value, durationMin)}
-                      required
-                    />
-                  </div>
+                  {/* Day and time come from the teacher's own availability,
+                      so a learner can't ask for a slot that isn't offered. */}
+                  {bookableDays.length === 0 ? (
+                    <p className="rounded-xl bg-[#F5C42C]/15 px-3 py-2.5 text-xs text-[#7A2E1A]">
+                      This teacher hasn&apos;t published any availability yet. Message them to arrange a time.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="space-y-1">
+                        <Label htmlFor="booking-day">Day</Label>
+                        <select
+                          id="booking-day"
+                          value={chosenDay}
+                          onChange={(e) => {
+                            setChosenDay(e.target.value);
+                            setChosenMinutes("");
+                          }}
+                          required
+                          className={SELECT_CLASS}
+                        >
+                          <option value="" disabled>
+                            Choose a day…
+                          </option>
+                          {bookableDays.map((d) => (
+                            <option key={d.key} value={d.key}>
+                              {d.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label htmlFor="booking-time">Start time</Label>
+                        <select
+                          id="booking-time"
+                          value={chosenMinutes}
+                          onChange={(e) => setChosenMinutes(Number(e.target.value))}
+                          required
+                          disabled={!chosenDay || bookableTimes.length === 0}
+                          className={SELECT_CLASS}
+                        >
+                          <option value="" disabled>
+                            {!chosenDay
+                              ? "Pick a day first"
+                              : bookableTimes.length === 0
+                                ? "No room left for a lesson this long"
+                                : "Choose a time…"}
+                          </option>
+                          {bookableTimes.map((t) => (
+                            <option key={t.minutes} value={t.minutes}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-400">Times shown in {viewerTz}.</p>
+                      </div>
+                    </>
+                  )}
                   <div className="space-y-1">
                     <Label>How long?</Label>
                     <div className="grid grid-cols-4 gap-1.5">
@@ -475,7 +606,7 @@ export function TeacherProfile() {
                         <button
                           key={m}
                           type="button"
-                          onClick={() => applySchedule(startRaw, m)}
+                          onClick={() => setDurationMin(m)}
                           aria-pressed={durationMin === m}
                           className={`rounded-full py-1.5 text-xs font-bold border transition-colors ${
                             durationMin === m
