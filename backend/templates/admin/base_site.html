@@ -1,0 +1,19 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Lulimi admin') }}{% endblock %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/lulimi-admin.css" %}">{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+  <a href="{% url 'admin:index' %}">
+    <img src="{% static 'admin/img/lulimi-logo.png' %}" alt="" class="lulimi-logo">
+    <span>{{ site_header|default:_('Lulimi Connect') }}</span>
+  </a>
+  {% if lulimi_env %}<span class="lulimi-env">{{ lulimi_env }}</span>{% endif %}
+</h1>
+{% endblock %}
+
+{# The theme toggle is dropped: the admin follows the product's single light palette. #}
+{% block nav-global %}{% endblock %}

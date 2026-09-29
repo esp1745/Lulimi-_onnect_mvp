@@ -77,6 +77,10 @@ class Availability(models.Model):
     timezone = models.CharField(max_length=100, default='UTC')
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        verbose_name = 'availability slot'
+        verbose_name_plural = 'availability'
+
     def __str__(self):
         return f"{self.teacher.user.full_name} - {self.get_day_of_week_display()} {self.start_time}-{self.end_time}"
 

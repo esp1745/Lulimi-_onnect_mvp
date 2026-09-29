@@ -1,0 +1,885 @@
+/*
+    Lulimi Connect admin theme.
+
+    Django 4.2's admin is built on CSS custom properties, so most of the
+    rebrand is a palette swap; the rest is spacing, radius and typography to
+    match the marketing site and the learner/teacher app.
+
+    Palette (shared with the frontend):
+      sage       #A0B76F   dark green #1A3A35
+      brick      #C4622D   deep brick #7A2E1A
+      yellow     #F5C42C   cream      #F5F0E8
+*/
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap");
+
+html[data-theme="light"],
+html[data-theme="dark"],
+:root {
+    --lulimi-sage: #a0b76f;
+    --lulimi-sage-dark: #8aa55a;
+    --lulimi-green: #1a3a35;
+    --lulimi-green-mid: #2d5a45;
+    --lulimi-brick: #c4622d;
+    --lulimi-brick-dark: #7a2e1a;
+    --lulimi-yellow: #f5c42c;
+    --lulimi-cream: #f5f0e8;
+
+    --primary: var(--lulimi-green-mid);
+    --secondary: var(--lulimi-green);
+    --accent: var(--lulimi-sage);
+    --primary-fg: #fff;
+
+    --body-fg: #33413e;
+    --body-bg: var(--lulimi-cream);
+    --body-quiet-color: #6b7a77;
+    --body-loud-color: var(--lulimi-green);
+
+    --header-color: rgba(255, 255, 255, 0.72);
+    --header-branding-color: #fff;
+    --header-bg: var(--lulimi-green);
+    --header-link-color: #fff;
+
+    --breadcrumbs-fg: var(--lulimi-green);
+    --breadcrumbs-link-fg: var(--lulimi-green);
+    --breadcrumbs-bg: transparent;
+
+    --link-fg: var(--lulimi-brick);
+    --link-hover-color: var(--lulimi-brick-dark);
+    --link-selected-fg: var(--lulimi-brick-dark);
+
+    --hairline-color: rgba(26, 58, 53, 0.08);
+    --border-color: rgba(26, 58, 53, 0.14);
+
+    --error-fg: #b5453c;
+
+    --message-success-bg: rgba(160, 183, 111, 0.22);
+    --message-warning-bg: rgba(245, 196, 44, 0.24);
+    --message-error-bg: rgba(181, 69, 60, 0.14);
+
+    --darkened-bg: #faf7f1;
+    --selected-bg: rgba(160, 183, 111, 0.16);
+    --selected-row: rgba(245, 196, 44, 0.2);
+
+    --button-fg: #fff;
+    --button-bg: var(--lulimi-green);
+    --button-hover-bg: var(--lulimi-green-mid);
+    --default-button-bg: var(--lulimi-brick);
+    --default-button-hover-bg: var(--lulimi-brick-dark);
+    --close-button-bg: #8a9895;
+    --close-button-hover-bg: var(--lulimi-green);
+    --delete-button-bg: #b5453c;
+    --delete-button-hover-bg: #93332c;
+
+    --object-tools-fg: #fff;
+    --object-tools-bg: var(--lulimi-green);
+    --object-tools-hover-bg: var(--lulimi-green-mid);
+
+    --font-family-primary: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+    color-scheme: light;
+}
+
+/* The admin ships a dark theme that would fight the brand palette above.
+   One theme, matching the rest of the product. */
+@media (prefers-color-scheme: dark) {
+    html[data-theme="auto"] {
+        color-scheme: light;
+    }
+}
+
+body {
+    font-family: var(--font-family-primary);
+    font-size: 14px;
+}
+
+/* ---------- Header ---------- */
+
+#header {
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    box-shadow: 0 1px 0 rgba(26, 58, 53, 0.06);
+}
+
+#branding {
+    display: flex;
+    align-items: center;
+}
+
+#branding h1 {
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#branding h1 a:link,
+#branding h1 a:visited {
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.lulimi-logo {
+    height: 28px;
+    width: auto;
+    display: block;
+}
+
+.lulimi-env {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+#user-tools {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0;
+    margin: 0;
+}
+
+#user-tools a,
+#logout-form button {
+    border-bottom: none;
+    padding: 6px 12px;
+    border-radius: 999px;
+    transition: background-color 0.15s ease;
+}
+
+#user-tools a:hover,
+#logout-form button:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+/* ---------- Breadcrumbs & page shell ---------- */
+
+div.breadcrumbs {
+    padding: 16px 40px 0;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    color: var(--body-quiet-color);
+}
+
+div.breadcrumbs a {
+    color: var(--body-quiet-color);
+}
+
+div.breadcrumbs a:focus,
+div.breadcrumbs a:hover {
+    color: var(--lulimi-brick);
+}
+
+#content {
+    padding: 24px 40px 48px;
+}
+
+#content h1 {
+    font-weight: 800;
+    font-size: 26px;
+    color: var(--lulimi-green);
+    margin-bottom: 20px;
+}
+
+/* ---------- Cards: modules, forms, changelists ---------- */
+
+.module,
+.inline-group,
+#changelist,
+.dashboard .module {
+    background: #fff;
+    border: 1px solid var(--hairline-color);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(26, 58, 53, 0.04);
+}
+
+.module > h2,
+.module caption,
+.inline-group h2 {
+    background: #fff;
+    color: var(--lulimi-green);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+.module table {
+    width: 100%;
+}
+
+#changelist table thead th {
+    background: var(--darkened-bg);
+    border-bottom: 1px solid var(--hairline-color);
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--body-quiet-color);
+}
+
+#changelist table tbody td,
+#changelist table tbody th {
+    border-bottom: 1px solid var(--hairline-color);
+    padding: 12px 10px;
+}
+
+#changelist tbody tr:hover > * {
+    background: rgba(160, 183, 111, 0.08);
+}
+
+/* ---------- Buttons ---------- */
+
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+    border-radius: 999px;
+    font-weight: 700;
+    padding: 9px 18px;
+    border: none;
+    transition: background-color 0.15s ease;
+}
+
+.submit-row {
+    background: #fff;
+    border: 1px solid var(--hairline-color);
+    border-radius: 16px;
+    padding: 14px 20px;
+    margin-top: 20px;
+}
+
+.object-tools a {
+    border-radius: 999px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 12px;
+}
+
+/* ---------- Filters & search ---------- */
+
+#changelist-filter {
+    background: #fff;
+    border: 1px solid var(--hairline-color);
+    border-radius: 16px;
+    margin-left: 16px;
+}
+
+#changelist-filter h2 {
+    background: #fff;
+    border-bottom: 1px solid var(--hairline-color);
+    border-radius: 16px 16px 0 0;
+    color: var(--lulimi-green);
+    font-weight: 800;
+}
+
+#changelist-filter li.selected {
+    border-left: 4px solid var(--lulimi-sage);
+}
+
+#changelist-filter li.selected a {
+    color: var(--lulimi-green);
+    font-weight: 700;
+}
+
+#toolbar {
+    background: var(--darkened-bg);
+    border-bottom: 1px solid var(--hairline-color);
+    padding: 12px 16px;
+}
+
+#toolbar form #searchbar {
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-family: inherit;
+    min-width: 260px;
+}
+
+#toolbar form #searchbar:focus {
+    border-color: var(--lulimi-sage);
+    outline: 2px solid rgba(160, 183, 111, 0.35);
+}
+
+.actions {
+    background: var(--darkened-bg);
+    border-bottom: 1px solid var(--hairline-color);
+    padding: 10px 16px;
+}
+
+.actions select {
+    border-radius: 8px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+}
+
+/* ---------- Form fields ---------- */
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="url"],
+input[type="number"],
+input[type="tel"],
+textarea,
+select,
+.vTextField {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="url"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus,
+.vTextField:focus {
+    border-color: var(--lulimi-sage);
+    outline: 2px solid rgba(160, 183, 111, 0.35);
+    outline-offset: 0;
+}
+
+fieldset.module {
+    margin-bottom: 20px;
+}
+
+/* ---------- Messages ---------- */
+
+ul.messagelist li {
+    border-radius: 12px;
+    font-weight: 600;
+    padding: 12px 16px 12px 44px;
+    margin-bottom: 10px;
+}
+
+/* ---------- Dashboard ---------- */
+
+.lulimi-attention {
+    background: #fff;
+    border: 1px solid var(--lulimi-yellow);
+    border-left: 5px solid var(--lulimi-yellow);
+    border-radius: 16px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+}
+
+.lulimi-attention h2 {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--lulimi-green);
+    margin: 0 0 12px;
+}
+
+.lulimi-attention ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lulimi-attention li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.lulimi-attention .count {
+    font-weight: 800;
+    font-size: 17px;
+    color: var(--lulimi-green);
+    min-width: 28px;
+}
+
+.lulimi-attention .label {
+    color: var(--body-fg);
+    flex: 1;
+    min-width: 180px;
+}
+
+.lulimi-attention .go {
+    background: var(--lulimi-green);
+    color: #fff;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-weight: 700;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.lulimi-attention .go:hover {
+    background: var(--lulimi-green-mid);
+    color: #fff;
+}
+
+.lulimi-all-clear {
+    color: var(--body-quiet-color);
+    margin: 0;
+}
+
+.lulimi-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+.lulimi-stat {
+    display: block;
+    background: #fff;
+    border: 1px solid var(--hairline-color);
+    border-radius: 16px;
+    padding: 18px 20px;
+    text-decoration: none;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.lulimi-stat:hover {
+    border-color: var(--lulimi-sage);
+    transform: translateY(-1px);
+}
+
+.lulimi-stat .value {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--lulimi-green);
+    letter-spacing: -0.02em;
+}
+
+.lulimi-stat.warn .value {
+    color: var(--lulimi-brick);
+}
+
+.lulimi-stat.good .value {
+    color: var(--lulimi-green-mid);
+}
+
+.lulimi-stat .label {
+    display: block;
+    margin-top: 8px;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--body-fg);
+}
+
+.lulimi-stat .hint {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--body-quiet-color);
+}
+
+.dashboard #content {
+    display: block;
+}
+
+.dashboard .colMS {
+    margin-right: 0;
+}
+
+.lulimi-apps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.lulimi-apps .module {
+    margin-bottom: 0;
+}
+
+.lulimi-apps .module table tbody th,
+.lulimi-apps .module table tbody td {
+    padding: 11px 20px;
+    border-bottom: 1px solid var(--hairline-color);
+    vertical-align: middle;
+}
+
+.lulimi-apps .module table tbody tr:last-child th,
+.lulimi-apps .module table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.lulimi-apps .module table tbody th a {
+    font-weight: 700;
+    color: var(--lulimi-green);
+}
+
+.lulimi-apps .module table tbody th a:hover {
+    color: var(--lulimi-brick);
+}
+
+.lulimi-apps .addlink,
+.lulimi-apps .changelink {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--body-quiet-color);
+}
+
+/* Recent actions sits under the grid rather than in a cramped side column. */
+#content-related {
+    width: auto;
+    margin: 28px 0 0;
+    float: none;
+    position: static;
+}
+
+#content-related .module {
+    background: #fff;
+}
+
+#content-related .module h2 {
+    background: #fff;
+}
+
+#content-related .actionlist {
+    padding: 8px 20px 16px;
+    margin: 0;
+}
+
+#content-related .actionlist li {
+    padding: 6px 0 6px 20px;
+    font-size: 13px;
+}
+
+/* ---------- Login ---------- */
+
+body.login {
+    background: var(--lulimi-cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+}
+
+body.login #container {
+    background: #fff;
+    border: 1px solid var(--hairline-color);
+    border-radius: 20px;
+    box-shadow: 0 8px 28px rgba(26, 58, 53, 0.08);
+    padding: 8px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0;
+}
+
+body.login #header {
+    background: transparent;
+    padding: 28px 28px 4px;
+    justify-content: center;
+    box-shadow: none;
+}
+
+body.login #branding h1,
+body.login #branding h1 a:link,
+body.login #branding h1 a:visited {
+    color: var(--lulimi-green);
+    flex-direction: column;
+    gap: 10px;
+    font-size: 20px;
+}
+
+body.login .lulimi-logo {
+    height: 38px;
+}
+
+body.login .lulimi-env {
+    background: rgba(26, 58, 53, 0.08);
+    color: var(--lulimi-green);
+}
+
+body.login #content {
+    padding: 8px 28px 28px;
+}
+
+body.login .form-row {
+    padding: 8px 0;
+    border: none;
+}
+
+body.login #content-main input[type="text"],
+body.login #content-main input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 14px;
+    border-radius: 12px;
+}
+
+body.login .submit-row {
+    background: transparent;
+    border: none;
+    padding: 12px 0 0;
+    margin: 0;
+}
+
+body.login .submit-row input[type="submit"] {
+    width: 100%;
+    background: var(--lulimi-brick);
+    padding: 12px;
+    font-size: 15px;
+}
+
+body.login .submit-row input[type="submit"]:hover {
+    background: var(--lulimi-brick-dark);
+}
+
+body.login .password-reset-link {
+    text-align: center;
+    margin-top: 14px;
+}
+
+.lulimi-login-note {
+    text-align: center;
+    font-size: 12px;
+    color: var(--body-quiet-color);
+    margin: 18px 0 0;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 767px) {
+    #header,
+    div.breadcrumbs,
+    #content {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .lulimi-stats {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+}
+
+/* ---------- Section links ----------
+   base.css paints a.section with --header-link-color, which is white for the
+   dark app bar. On the light cards and sidebar that's invisible, so the
+   app-name links need their own colour. */
+
+.module caption a.section:link,
+.module caption a.section:visited,
+a.section:link,
+a.section:visited {
+    color: var(--lulimi-green);
+    font-weight: 800;
+}
+
+.module caption a.section:hover,
+a.section:hover {
+    color: var(--lulimi-brick);
+}
+
+/* ---------- Sidebar ---------- */
+
+#nav-sidebar {
+    background: var(--lulimi-cream);
+    border-right: 1px solid var(--hairline-color);
+    padding: 16px 12px 24px;
+}
+
+#nav-filter {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    margin-bottom: 14px;
+    background: #fff;
+}
+
+#nav-filter:focus {
+    border-color: var(--lulimi-sage);
+    outline: 2px solid rgba(160, 183, 111, 0.35);
+}
+
+#nav-sidebar .module {
+    margin-bottom: 12px;
+    border-radius: 14px;
+}
+
+#nav-sidebar .module caption {
+    padding: 12px 16px;
+    font-size: 11px;
+}
+
+#nav-sidebar .module th,
+#nav-sidebar .module td {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--hairline-color);
+}
+
+#nav-sidebar .module tr:last-child th,
+#nav-sidebar .module tr:last-child td {
+    border-bottom: none;
+}
+
+#nav-sidebar .module th a {
+    color: var(--body-fg);
+    font-weight: 600;
+    font-size: 13px;
+}
+
+#nav-sidebar .module th a:hover {
+    color: var(--lulimi-brick);
+}
+
+#nav-sidebar .current-app .section:link,
+#nav-sidebar .current-app .section:visited {
+    color: var(--lulimi-brick);
+}
+
+#nav-sidebar .current-model {
+    background: rgba(160, 183, 111, 0.18);
+}
+
+#nav-sidebar .current-model th a {
+    color: var(--lulimi-green);
+    font-weight: 800;
+}
+
+.toggle-nav-sidebar {
+    background: var(--lulimi-cream);
+    border-right: 1px solid var(--hairline-color);
+    color: var(--lulimi-green);
+}
+
+.toggle-nav-sidebar:hover,
+.toggle-nav-sidebar:focus {
+    background: rgba(160, 183, 111, 0.18);
+}
+
+/* ---------- Light theme only ----------
+   The palette above is a single light theme, so the admin's own light/dark
+   toggle has nothing to switch between. */
+
+.theme-toggle {
+    display: none !important;
+}
+
+/* At narrow widths the admin stacks the header; keep it left-aligned rather
+   than centred, so it still reads as a bar. */
+@media (max-width: 1024px) {
+    #header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px 20px;
+    }
+
+    #user-tools {
+        text-align: left;
+    }
+}
+
+/* ---------- Change form ---------- */
+
+fieldset.module {
+    padding: 8px 4px;
+}
+
+.form-row {
+    border-bottom: 1px solid var(--hairline-color);
+    padding: 12px 16px;
+}
+
+fieldset.module .form-row:last-child {
+    border-bottom: none;
+}
+
+.aligned label {
+    font-weight: 700;
+    color: var(--lulimi-green);
+    padding-top: 9px;
+}
+
+.help,
+.form-row div.help,
+div.help {
+    color: var(--body-quiet-color);
+    font-size: 12px;
+}
+
+.errorlist {
+    color: var(--error-fg);
+    font-weight: 600;
+}
+
+.errornote {
+    border-radius: 12px;
+    border: 1px solid var(--error-fg);
+    background: var(--message-error-bg);
+    color: var(--error-fg);
+    font-weight: 600;
+    padding: 12px 16px;
+}
+
+/* The delete link shouldn't read like a primary action. */
+.submit-row a.deletelink {
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+/* ---------- Pagination & results footer ---------- */
+
+.paginator {
+    padding: 14px 16px;
+    border-top: 1px solid var(--hairline-color);
+    background: var(--darkened-bg);
+    font-size: 13px;
+}
+
+.paginator a:link,
+.paginator a:visited {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--lulimi-green);
+    font-weight: 600;
+    padding: 4px 9px;
+}
+
+.paginator a:hover {
+    background: rgba(160, 183, 111, 0.18);
+    border-color: var(--lulimi-sage);
+}
+
+.paginator .this-page {
+    background: var(--lulimi-green);
+    color: #fff;
+    border-radius: 8px;
+    padding: 4px 9px;
+    font-weight: 700;
+}

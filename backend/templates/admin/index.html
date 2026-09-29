@@ -1,0 +1,73 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static log %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block nav-breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div id="content-main">
+
+  {# What needs a person right now, before anything else on the page. #}
+  {% if lulimi_needs_attention %}
+    <div class="lulimi-attention">
+      <h2>{% translate "Needs your attention" %}</h2>
+      <ul>
+        {% for item in lulimi_needs_attention %}
+          <li>
+            <span class="count">{{ item.count }}</span>
+            <span class="label">{{ item.label }}</span>
+            <a class="go" href="{{ item.url }}">{{ item.action }} &rarr;</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <div class="lulimi-stats">
+    {% for stat in lulimi_stats %}
+      <a class="lulimi-stat {{ stat.tone }}" href="{{ stat.url }}">
+        <span class="value">{{ stat.value }}</span>
+        <span class="label">{{ stat.label }}</span>
+        <span class="hint">{{ stat.hint }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="lulimi-apps">
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+  </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related">
+  <div class="module" id="recent-actions-module">
+    <h2>{% translate 'Recent actions' %}</h2>
+    {% get_admin_log 10 as admin_log for_user user %}
+    {% if not admin_log %}
+      <p style="padding: 0 20px 16px;">{% translate 'None available' %}</p>
+    {% else %}
+      <ul class="actionlist">
+        {% for entry in admin_log %}
+          <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+            {% if entry.is_deletion or not entry.get_admin_url %}
+              {{ entry.object_repr }}
+            {% else %}
+              <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+            {% endif %}
+            <br>
+            {% if entry.content_type %}
+              <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
+            {% else %}
+              <span class="mini quiet">{% translate 'Unknown content' %}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
