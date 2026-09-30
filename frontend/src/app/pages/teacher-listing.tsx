@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
-import { tabClass } from "../components/TeacherSubNav";
+import { filterChipClass } from "../components/TeacherSubNav";
 import { Button } from "../components/ui/button";
 import { Checkbox } from "../components/ui/checkbox";
 import { Slider } from "../components/ui/slider";
@@ -228,7 +228,7 @@ export function TeacherListing() {
                       variant={sortBy === tab.key ? "default" : "outline"}
                       onClick={() => setSortBy(tab.key)}
                       aria-pressed={sortBy === tab.key}
-                      className={tabClass(sortBy === tab.key)}
+                      className={filterChipClass(sortBy === tab.key)}
                     >
                       {tab.label}
                     </Button>

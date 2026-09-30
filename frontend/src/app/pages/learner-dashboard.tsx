@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import GoogleCalendarCard from "../components/GoogleCalendarCard";
 import AIAssistant from "../components/AIAssistant";
 import { PaymentModal } from "../components/PaymentModal";
+import { usePdfViewer } from "../components/PdfViewerModal";
 import { DashboardHeader } from "../components/DashboardHeader";
 import api from "@/lib/api";
 import { useAuth } from "../context/auth-context";
@@ -175,7 +176,7 @@ function PastLessonRow({ booking, onReviewed }: { booking: Booking; onReviewed: 
   );
 }
 
-function ResourceCard({ resource }: { resource: Resource }) {
+function ResourceCard({ resource, onOpenPdf }: { resource: Resource; onOpenPdf: (url: string, title: string) => void }) {
   return (
     <div className="py-3 border-b last:border-0">
       <div className="flex items-start justify-between gap-2">
@@ -185,13 +186,24 @@ function ResourceCard({ resource }: { resource: Resource }) {
             {resource.language_name} · {resource.resource_type}
           </p>
         </div>
-        {resource.file_url && (
-          <a href={resource.file_url} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline" className="h-7 text-xs">
+        {/* PDFs open in place so the lesson page isn't lost behind a new tab. */}
+        {resource.file_url &&
+          (resource.resource_type === "pdf" ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => onOpenPdf(resource.file_url, resource.title)}
+            >
               Open
             </Button>
-          </a>
-        )}
+          ) : (
+            <a href={resource.file_url} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="outline" className="h-7 text-xs">
+                Open
+              </Button>
+            </a>
+          ))}
       </div>
       {resource.resource_type === "audio" && resource.file_url && <audio controls src={resource.file_url} className="w-full mt-2 h-8" />}
       {resource.content_text && <p className="text-xs text-gray-600 mt-1 line-clamp-2">{resource.content_text}</p>}
@@ -204,6 +216,7 @@ export function LearnerDashboard() {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<LearnerDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { openPdf, pdfViewer } = usePdfViewer();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -335,7 +348,7 @@ export function LearnerDashboard() {
               {dashboard?.saved_resources.length === 0 ? (
                 <p className="text-sm text-gray-400">No resources shared with you yet.</p>
               ) : (
-                dashboard?.saved_resources.map((r) => <ResourceCard key={r.id} resource={r} />)
+                dashboard?.saved_resources.map((r) => <ResourceCard key={r.id} resource={r} onOpenPdf={openPdf} />)
               )}
             </CardContent>
           </Card>
@@ -351,6 +364,7 @@ export function LearnerDashboard() {
       <Footer />
 
       <AIAssistant role="learner" />
+      {pdfViewer}
     </div>
   );
 }

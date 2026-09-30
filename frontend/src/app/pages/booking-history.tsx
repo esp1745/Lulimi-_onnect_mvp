@@ -3,9 +3,10 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
-import { tabClass } from "../components/TeacherSubNav";
+import { filterChipClass } from "../components/TeacherSubNav";
 import { DashboardHeader } from "../components/DashboardHeader";
 import { Button } from "../components/ui/button";
+import { PaymentModal } from "../components/PaymentModal";
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent } from "../components/ui/card";
 import api from "@/lib/api";
@@ -21,6 +22,73 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_FILTERS = ["all", "pending", "confirmed", "completed", "declined", "cancelled"];
+
+function BookingRow({
+  booking,
+  isTeacher,
+  onPaid,
+}: {
+  booking: Booking;
+  isTeacher: boolean;
+  onPaid: (b: Booking) => void;
+}) {
+  const [payingOpen, setPayingOpen] = useState(false);
+  const isPaid = booking.payment_status === "paid";
+  // Learners pay; only lessons still going ahead are worth paying for.
+  const payable = !isTeacher && !isPaid && ["pending", "confirmed"].includes(booking.status);
+  const notes = isTeacher ? booking.teacher_notes : booking.learner_notes;
+
+  return (
+    <div className="px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium text-sm text-[#1A3A35]">
+            {isTeacher ? booking.student_name || booking.learner_name : booking.teacher_name}
+          </p>
+          {isTeacher && booking.student_name && booking.student_name !== booking.learner_name && (
+            <p className="text-xs text-gray-400">Booked by {booking.learner_name}</p>
+          )}
+          <p className="text-xs text-gray-500">
+            {booking.language_name} · {new Date(booking.start_at).toLocaleString()}
+          </p>
+          {notes && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{notes}</p>}
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {!isTeacher &&
+            (isPaid ? (
+              <Badge className="text-xs border-0 bg-[#A0B76F]/25 text-[#1A3A35]">
+                paid{booking.payment_amount ? ` · $${booking.payment_amount}` : ""}
+              </Badge>
+            ) : (
+              payable && (
+                <Button
+                  size="sm"
+                  className="h-7 text-xs bg-[#A0B76F] hover:bg-[#8aa55a] text-[#1A3A35] font-bold rounded-full"
+                  onClick={() => setPayingOpen(true)}
+                >
+                  Pay now
+                </Button>
+              )
+            ))}
+          <Badge className={`text-xs border-0 ${STATUS_COLORS[booking.status]}`}>{booking.status}</Badge>
+        </div>
+      </div>
+
+      {payingOpen && (
+        <PaymentModal
+          booking={booking}
+          onClose={() => setPayingOpen(false)}
+          onPaid={(payment) => {
+            setPayingOpen(false);
+            toast.success("Payment complete — your lesson is booked.");
+            onPaid({ ...booking, payment_status: "paid", payment_amount: payment.amount });
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 export function BookingHistory() {
   const { user, loading: authLoading } = useAuth();
@@ -62,14 +130,15 @@ export function BookingHistory() {
           subtitle={`Every lesson ${isTeacher ? "you've taught or been asked to teach" : "you've booked"}.`}
         />
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">Show</span>
           {STATUS_FILTERS.map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => setStatusFilter(s)}
               aria-pressed={statusFilter === s}
-              className={`${tabClass(statusFilter === s)} capitalize`}
+              className={`${filterChipClass(statusFilter === s)} capitalize`}
             >
               {s}
             </button>
@@ -85,23 +154,12 @@ export function BookingHistory() {
             ) : (
               <div className="divide-y">
                 {bookings.map((b) => (
-                  <div key={b.id} className="px-5 py-4 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm text-[#1A3A35]">
-                        {isTeacher ? b.student_name || b.learner_name : b.teacher_name}
-                      </p>
-                      {isTeacher && b.student_name && b.student_name !== b.learner_name && (
-                        <p className="text-xs text-gray-400">Booked by {b.learner_name}</p>
-                      )}
-                      <p className="text-xs text-gray-500">
-                        {b.language_name} · {new Date(b.start_at).toLocaleString()}
-                      </p>
-                      {(isTeacher ? b.teacher_notes : b.learner_notes) && (
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{isTeacher ? b.teacher_notes : b.learner_notes}</p>
-                      )}
-                    </div>
-                    <Badge className={`text-xs border-0 shrink-0 ${STATUS_COLORS[b.status]}`}>{b.status}</Badge>
-                  </div>
+                  <BookingRow
+                    key={b.id}
+                    booking={b}
+                    isTeacher={isTeacher}
+                    onPaid={(paid) => setBookings((list) => list.map((x) => (x.id === paid.id ? paid : x)))}
+                  />
                 ))}
               </div>
             )}

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
-import { tabClass } from "../components/TeacherSubNav";
+import { filterChipClass } from "../components/TeacherSubNav";
 import { DashboardHeader } from "../components/DashboardHeader";
+import { usePdfViewer } from "../components/PdfViewerModal";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -22,6 +23,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function ResourceLibrary() {
   const { user } = useAuth();
+  const { openPdf, pdfViewer } = usePdfViewer();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState("");
@@ -56,12 +58,13 @@ export function ResourceLibrary() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">Language</span>
           <button
             type="button"
             onClick={() => setLanguage("")}
             aria-pressed={language === ""}
-            className={tabClass(language === "")}
+            className={filterChipClass(language === "")}
           >
             All languages
           </button>
@@ -71,7 +74,7 @@ export function ResourceLibrary() {
               type="button"
               onClick={() => setLanguage(l)}
               aria-pressed={language === l}
-              className={tabClass(language === l)}
+              className={filterChipClass(language === l)}
             >
               {l}
             </button>
@@ -110,10 +113,21 @@ export function ResourceLibrary() {
 
                     {r.resource_type === "audio" && r.file_url && <audio controls src={r.file_url} className="w-full h-8" />}
                     {r.resource_type === "image" && r.file_url && <img src={r.file_url} alt={r.title} className="max-h-40 rounded-md object-cover" />}
-                    {["pdf", "link"].includes(r.resource_type) && r.file_url && (
+                    {/* PDFs open in place; a link still has to leave the site. */}
+                    {r.resource_type === "pdf" && r.file_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => openPdf(r.file_url, r.title)}
+                      >
+                        Open PDF
+                      </Button>
+                    )}
+                    {r.resource_type === "link" && r.file_url && (
                       <a href={r.file_url} target="_blank" rel="noopener noreferrer">
                         <Button size="sm" variant="outline" className="h-7 text-xs">
-                          Open {r.resource_type === "pdf" ? "PDF" : "link"} →
+                          Open link →
                         </Button>
                       </a>
                     )}
@@ -125,6 +139,7 @@ export function ResourceLibrary() {
         </Card>
       </div>
       <Footer />
+      {pdfViewer}
     </div>
   );
 }

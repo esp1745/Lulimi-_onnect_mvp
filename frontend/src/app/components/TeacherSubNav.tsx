@@ -20,6 +20,21 @@ export const tabClass = (active: boolean) =>
       : "bg-white text-[#1A3A35] border border-[#1A3A35]/20 hover:bg-[#A0B76F]/10 hover:border-[#A0B76F]"
   }`;
 
+/**
+ * Filters are not navigation.
+ *
+ * Reusing the nav pill for "All / Pending / Confirmed" put a second row of
+ * identical buttons directly under the section nav, which read as a duplicate
+ * navbar. Filter chips are deliberately smaller and flatter so the eye can
+ * tell at a glance which row changes the page and which narrows a list.
+ */
+export const filterChipClass = (active: boolean) =>
+  `h-7 px-3 rounded-full text-xs font-semibold border transition-colors ${
+    active
+      ? "bg-[#1A3A35] text-white border-[#1A3A35]"
+      : "bg-transparent text-[#1A3A35]/70 border-[#1A3A35]/15 hover:border-[#1A3A35]/40 hover:text-[#1A3A35]"
+  }`;
+
 const TEACHER_LINKS = [
   { label: "Dashboard", to: "/teacher/dashboard" },
   { label: "Edit profile", to: "/teacher/profile" },

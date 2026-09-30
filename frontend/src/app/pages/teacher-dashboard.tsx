@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
+import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Navigation } from "../components/navigation";
 import { Footer } from "../components/footer";
@@ -450,9 +451,19 @@ export function TeacherDashboard() {
                           </p>
                           <p className="text-xs text-gray-400">Last: {new Date(s.last_lesson).toLocaleDateString()}</p>
                         </div>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                           {s.email}
                         </Badge>
+                        {/* Straight into the thread with this student. */}
+                        <Link
+                          to={`/messages/${s.id}`}
+                          state={{ name: s.full_name }}
+                          title={`Message ${s.full_name}`}
+                          aria-label={`Message ${s.full_name}`}
+                          className="p-2 rounded-full text-[#1A3A35]/60 hover:text-[#1A3A35] hover:bg-[#A0B76F]/20 transition-colors"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </Link>
                       </div>
                     </div>
                   ))}
